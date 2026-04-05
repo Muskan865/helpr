@@ -9,11 +9,29 @@ class WorkerDashboard extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Helpr"),
         centerTitle: true,
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 10),
-            child: Icon(Icons.more_horiz),
-          )
+        actions: [
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_horiz),
+            onSelected: (value) {
+              if (value == 'profile') {
+                print("Go to profile");
+              } else if (value == 'notifications') {
+                print("View notifications");
+              }
+              else if (value == 'chat') {
+                print("Open chat");
+              }
+              else if (value == 'logout') {
+                print("Logout");
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(value: 'profile', child: Text("Profile")),
+              PopupMenuItem(value: 'notifications', child: Text("Notifications")),
+              PopupMenuItem(value: 'chat', child: Text("Chat")),
+              PopupMenuItem(value: 'logout', child: Text("Logout")),
+            ],
+          ),
         ],
       ),
 
@@ -23,21 +41,14 @@ class WorkerDashboard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               // Welcome text
-              const Text(
-                "Welcome back,",
-                style: TextStyle(color: Colors.grey),
-              ),
+              const Text("Welcome back,", style: TextStyle(color: Colors.grey)),
 
               const SizedBox(height: 5),
 
               const Text(
                 "Khalid Ansari",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 20),
@@ -78,9 +89,21 @@ class WorkerDashboard extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
-                    requestItem("Plumbing repair", "0.8 km · DHA Phase 5", "Rs. 1,500"),
-                    requestItem("Furniture assembly", "1.4 km · Clifton", "Rs. 800"),
-                    requestItem("Deep cleaning", "2.1 km · Gulshan", "Rs. 1,200"),
+                    requestItem(
+                      "Plumbing repair",
+                      "0.8 km · DHA Phase 5",
+                      "Rs. 1,500",
+                    ),
+                    requestItem(
+                      "Furniture assembly",
+                      "1.4 km · Clifton",
+                      "Rs. 800",
+                    ),
+                    requestItem(
+                      "Deep cleaning",
+                      "2.1 km · Gulshan",
+                      "Rs. 1,200",
+                    ),
                   ],
                 ),
               ),
@@ -94,8 +117,16 @@ class WorkerDashboard extends StatelessWidget {
 
               const SizedBox(height: 10),
 
-              jobCard("Logo design for app", "Sara R. · Due in 2 days", "In progress"),
-              jobCard("AC unit inspection", "Omar F. · Due tomorrow", "Arriving"),
+              jobCard(
+                "Logo design for app",
+                "Sara R. · Due in 2 days",
+                "In progress",
+              ),
+              jobCard(
+                "AC unit inspection",
+                "Omar F. · Due tomorrow",
+                "Arriving",
+              ),
 
               const SizedBox(height: 20),
 
@@ -158,18 +189,22 @@ class WorkerDashboard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(title,
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey[300],
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(status, style: const TextStyle(fontSize: 12)),
-              )
+              ),
             ],
           ),
 
@@ -188,7 +223,7 @@ class WorkerDashboard extends StatelessWidget {
             value: 0.5,
             backgroundColor: Colors.grey[300],
             color: Colors.black,
-          )
+          ),
         ],
       ),
     );
