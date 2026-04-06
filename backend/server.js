@@ -1,19 +1,26 @@
 const express = require("express");
-const cors = require("cors");
+const { poolPromise } = require("./config/db");
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+app.get("/test-db", async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request().query("SELECT * FROM users");
 
-// Test route
-app.get("/", (req, res) => {
-    res.send("Backend is running 🚀");
+        res.json({
+            message: "DB connected",
+            data: result.recordset
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            message: "DB connection failed",
+            error: err.message
+        });
+    }
 });
 
-// Start server
-const PORT = 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(5000, () => {
+    console.log("Server running on port 5000");
 });
