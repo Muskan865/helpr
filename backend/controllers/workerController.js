@@ -11,9 +11,17 @@ exports.getWorkerJobs = async (req, res) => {
     const result = await pool.request()
       .input('workerId', workerId)
       .query(`
-        SELECT j.*, sr.description, sr.location, sr.date, sr.time
+        SELECT 
+          j.*, 
+          sr.service_type, 
+          sr.description, 
+          sr.location, 
+          sr.date, 
+          sr.time,
+          u.full_name AS client_name 
         FROM job j
         JOIN service_request sr ON j.request_id = sr.id
+        JOIN users u ON sr.requester_id = u.id  
         WHERE j.worker_id = @workerId
       `);
 
@@ -71,3 +79,22 @@ exports.getWorkerProfile = async (req, res) => {
   }
 };
 
+exports.getAllRequests = async (req, res) => {
+  try {
+    console.log("Connected to API");
+
+    const pool = await poolPromise;
+
+    const result = await pool.request()
+      .query(`
+        SELECT s.*
+        FROM service_request s
+        WHERE s.status = 'open'
+      `);
+
+    res.json(result.recordset);
+    console.log("Requests fetched successfully:", result.recordset.length);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

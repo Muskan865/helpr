@@ -12,11 +12,9 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
   Map<String, dynamic>? profile;
   List<dynamic> jobs = [];
   List<dynamic> bids = [];
-  List<dynamic> serviceRequests = [];
   bool isLoading = true;
-  String? error;
 
-  int workerId = 1;
+  final int workerId = 1; 
 
   @override
   void initState() {
@@ -26,112 +24,70 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
 
   Future<void> fetchData() async {
     try {
-      profile = await ApiService.getWorkerProfile(workerId);
-      print("Profile: $profile");
-    } catch (e) {
-      print("Profile error: $e");
-      setState(() {
-        error = "Failed at profile";
-        isLoading = false;
-      });
-    }
+      final fetchedProfile = await ApiService.getWorkerProfile(workerId);
+      final fetchedJobs = await ApiService.getWorkerJobs(workerId);
+      final fetchedBids = await ApiService.getWorkerBids(workerId);
 
-    try {
-      jobs = await ApiService.getWorkerJobs(workerId);
-    } catch (e) {
-      print("Jobs error: $e");
       setState(() {
-        error = "Failed at jobs";
+        profile = fetchedProfile;
+        jobs = fetchedJobs;
+        bids = fetchedBids;
         isLoading = false;
       });
-    }
-
-    try {
-      bids = await ApiService.getWorkerBids(workerId);
     } catch (e) {
-      print("Bids error: $e");
-      setState(() {
-        error = "Failed at bids";
-        isLoading = false;
-      });
+      print("Error fetching data: $e");
+      setState(() => isLoading = false);
     }
-    try {
-      serviceRequests = await ApiService.getAllRequests();
-      print("Requests: $serviceRequests");
-    } catch (e) {
-      print("Requests error: $e");
-      setState(() {
-        error = "Failed at requests";
-        isLoading = false;
-      });
-    }
-
-    setState(() {
-      isLoading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    if (error != null) {
-      return Scaffold(body: Center(child: Text(error!)));
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Helpr"),
         centerTitle: true,
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_horiz),
+            icon: Icon(Icons.more_horiz),
             onSelected: (value) {
-              switch (value) {
-                case 'profile':
-                  print("Go to profile");
-                  break;
-                case 'notifications':
-                  print("View notifications");
-                  break;
-                case 'chat':
-                  print("Open chat");
-                  break;
-                case 'logout':
-                  print("Logout");
-                  break;
+              if (value == 'profile') {
+                print("Go to profile");
+              } else if (value == 'notifications') {
+                print("View notifications");
+              }
+              else if (value == 'chat') {
+                print("Open chat");
+              }
+              else if (value == 'logout') {
+                print("Logout");
               }
             },
-            itemBuilder: (context) => const [
+            itemBuilder: (context) => [
               PopupMenuItem(value: 'profile', child: Text("Profile")),
-              PopupMenuItem(
-                value: 'notifications',
-                child: Text("Notifications"),
-              ),
+              PopupMenuItem(value: 'notifications', child: Text("Notifications")),
               PopupMenuItem(value: 'chat', child: Text("Chat")),
               PopupMenuItem(value: 'logout', child: Text("Logout")),
             ],
           ),
         ],
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome Text
+              // Welcome text
               const Text("Welcome back,", style: TextStyle(color: Colors.grey)),
+
               const SizedBox(height: 5),
-              Text(
-                profile?['full_name'] ?? "Worker",
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+
+              const Text(
+                "Khalid Ansari",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 20),
 
               // Browse Requests Button
@@ -154,7 +110,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
 
               const SizedBox(height: 20),
 
-              // Nearby Requests 
+              // Nearby Requests Card
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -169,16 +125,22 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
-                    if (serviceRequests.isEmpty)
-                      const Text("No nearby requests")
-                    else
-                      ...serviceRequests.take(3).map(
-                        (request) => requestItem(
-                          request['service_type'] ?? "",
-                          "${request['location'] ?? "-"}",
-                          "",
-                        ),
-                      ),
+
+                    requestItem(
+                      "Plumbing repair",
+                      "0.8 km · DHA Phase 5",
+                      "Rs. 1,500",
+                    ),
+                    requestItem(
+                      "Furniture assembly",
+                      "1.4 km · Clifton",
+                      "Rs. 800",
+                    ),
+                    requestItem(
+                      "Deep cleaning",
+                      "2.1 km · Gulshan",
+                      "Rs. 1,200",
+                    ),
                   ],
                 ),
               ),
@@ -189,19 +151,19 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                 "ONGOING JOBS",
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 10),
 
-              if (jobs.isEmpty)
-                const Text("No ongoing jobs")
-              else
-                ...jobs.map(
-                  (job) => jobCard(
-                    job['service_type'] ?? "",
-                    
-                    "${job['client_name'] ?? "-"} · Due ${DateTime.parse(job['date'] ?? "").day}/${DateTime.parse(job['date'] ?? "").month}/${DateTime.parse(job['date'] ?? "").year}",
-                    job['status'] ?? "Pending",
-                  ),
-                ),
+              jobCard(
+                "Logo design for app",
+                "Sara R. · Due in 2 days",
+                "In progress",
+              ),
+              jobCard(
+                "AC unit inspection",
+                "Omar F. · Due tomorrow",
+                "Arriving",
+              ),
 
               const SizedBox(height: 20),
 
@@ -229,7 +191,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     );
   }
 
-  // Request Item Widget
+  // 🔹 Request Item Widget
   Widget requestItem(String title, String subtitle, String price) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -249,7 +211,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     );
   }
 
-  // Job Card Widget
+  // 🔹 Job Card Widget
   Widget jobCard(String title, String subtitle, String status) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -282,14 +244,18 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
               ),
             ],
           ),
+
           const SizedBox(height: 5),
+
           Row(
             children: [
               Text(subtitle, style: const TextStyle(color: Colors.grey)),
             ],
           ),
+
           const SizedBox(height: 8),
-          // Progress bar (dummy value for now, can come from API)
+
+          // Progress bar
           LinearProgressIndicator(
             value: 0.5,
             backgroundColor: Colors.grey[300],
