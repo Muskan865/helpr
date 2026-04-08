@@ -1,13 +1,3 @@
-// const config = {
-//     user: "helprUser",
-//     password: "dummy",
-//     server: "DESKTOP-4DIK8GO\MUSKAN",
-//     database: "helprData",
-//     options: {
-//         trustServerCertificate: true
-//     }
-// };
-
 const sql = require("mssql");
 require("dotenv").config();
 

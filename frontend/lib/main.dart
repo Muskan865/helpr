@@ -1,22 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:helpr/screens/login_screen.dart';
 import 'package:helpr/screens/splash_screen.dart';
+import 'screens/worker_dashboard.dart';
+
 
 
 void main() {
   runApp(const MyApp());
 }
 
+
+// // ================ Splash Screen Testing ====================
+// class MyApp extends StatelessWidget {
+//   const MyApp({super.key});
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       home: SplashScreen(),
+//     );
+//   }
+// }
+
+//================ Worker Screen Testing ====================
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: SplashScreen(),
+      home: WorkerDashboard(),
     );
   }
 }
+
+
+
+
 // ===================== Pre written code =====================
 // void main() {
 //   runApp(const MyApp());
