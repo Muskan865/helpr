@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 //"http://10.0.2.2:3000/api"; for phone
 class ApiService {
-  static const String baseUrl = "http://192.168.1.6:3000/api"; 
+  static const String baseUrl = "http://10.20.6.68:3000/api"; 
 
   //Get Worker Jobs
   static Future<List<dynamic>> getWorkerJobs(int workerId) async {

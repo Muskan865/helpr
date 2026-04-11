@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'browse_requests_screen.dart';
 
 class WorkerDashboard extends StatefulWidget {
   const WorkerDashboard({super.key});
@@ -134,27 +135,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
               ),
               const SizedBox(height: 20),
 
-              // Browse Requests Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[200],
-                    foregroundColor: Colors.black,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text("Browse requests"),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Nearby Requests 
+              // Nearby Requests
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -172,14 +153,44 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                     if (serviceRequests.isEmpty)
                       const Text("No nearby requests")
                     else
-                      ...serviceRequests.take(3).map(
-                        (request) => requestItem(
-                          request['service_type'] ?? "",
-                          "${request['location'] ?? "-"}",
-                          "",
-                        ),
-                      ),
+                      ...serviceRequests
+                          .take(3)
+                          .map(
+                            (request) => requestItem(
+                              request['service_type'] ?? "",
+                              "${request['location'] ?? "-"}",
+                              "",
+                            ),
+                          ),
                   ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Browse Requests Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BrowseRequestsScreen(),
+                      ),
+                    );
+                  },
+
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text("Browse More requests"),
                 ),
               ),
 
@@ -197,7 +208,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                 ...jobs.map(
                   (job) => jobCard(
                     job['service_type'] ?? "",
-                    
+
                     "${job['client_name'] ?? "-"} · Due ${DateTime.parse(job['date'] ?? "").day}/${DateTime.parse(job['date'] ?? "").month}/${DateTime.parse(job['date'] ?? "").year}",
                     job['status'] ?? "Pending",
                   ),
@@ -255,8 +266,8 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color.fromARGB(255, 109, 109, 109)),
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
         children: [
@@ -289,7 +300,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
             ],
           ),
           const SizedBox(height: 8),
-          // Progress bar (dummy value for now, can come from API)
+          
           LinearProgressIndicator(
             value: 0.5,
             backgroundColor: Colors.grey[300],
