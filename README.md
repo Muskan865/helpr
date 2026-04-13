@@ -1,6 +1,6 @@
 # helpr
 
-A new Flutter project.
+Helpr is a mobile-based service marketplace designed to connect Requesters with local gig workers such as plumbers, electricians, and repair technicians in Pakistan. The system allows Requesters to post service requests, receive bids from nearby workers, and select suitable providers. Workers can browse requests, place bids, communicate with Requesters, and build a digital reputation through ratings and reviews.
 
 ## Getting Started
 
