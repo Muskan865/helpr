@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'browse_requests_screen.dart';
+import 'job_history.dart';
+import 'job_detail.dart';
+import '/widgets/appbar.dart';
+
 
 class WorkerDashboard extends StatefulWidget {
   const WorkerDashboard({super.key});
@@ -11,20 +15,20 @@ class WorkerDashboard extends StatefulWidget {
 
 class _WorkerDashboardState extends State<WorkerDashboard> {
   Map<String, dynamic>? profile;
-  List<dynamic> jobs = [];
+  List<dynamic> ongoingJobs = [];
+  List<dynamic> pastJobs = [];
   List<dynamic> bids = [];
   List<dynamic> serviceRequests = [];
   bool isLoading = true;
   String? error;
 
-  int workerId = 1;
+  int workerId = 2;
 
   @override
   void initState() {
     super.initState();
     fetchData();
   }
-
   Future<void> fetchData() async {
     try {
       profile = await ApiService.getWorkerProfile(workerId);
@@ -36,9 +40,13 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
         isLoading = false;
       });
     }
-
     try {
-      jobs = await ApiService.getWorkerJobs(workerId);
+      ongoingJobs = (await ApiService.getWorkerJobs(
+        workerId,
+      )).where((job) => job['status'] == "ongoing").toList();
+      pastJobs = (await ApiService.getWorkerJobs(
+        workerId,
+      )).where((job) => job['status'] == "completed").toList();
     } catch (e) {
       print("Jobs error: $e");
       setState(() {
@@ -46,7 +54,6 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
         isLoading = false;
       });
     }
-
     try {
       bids = await ApiService.getWorkerBids(workerId);
     } catch (e) {
@@ -57,8 +64,8 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
       });
     }
     try {
-      serviceRequests = await ApiService.getAllRequests();
-      print("Requests: $serviceRequests");
+      serviceRequests = await ApiService.getMatchingRequests(workerId);
+      print("dashboard_Requests: $serviceRequests");
     } catch (e) {
       print("Requests error: $e");
       setState(() {
@@ -66,7 +73,6 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
         isLoading = false;
       });
     }
-
     setState(() {
       isLoading = false;
     });
@@ -77,46 +83,11 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     if (isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
     if (error != null) {
       return Scaffold(body: Center(child: Text(error!)));
     }
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Helpr"),
-        centerTitle: true,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_horiz),
-            onSelected: (value) {
-              switch (value) {
-                case 'profile':
-                  print("Go to profile");
-                  break;
-                case 'notifications':
-                  print("View notifications");
-                  break;
-                case 'chat':
-                  print("Open chat");
-                  break;
-                case 'logout':
-                  print("Logout");
-                  break;
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'profile', child: Text("Profile")),
-              PopupMenuItem(
-                value: 'notifications',
-                child: Text("Notifications"),
-              ),
-              PopupMenuItem(value: 'chat', child: Text("Chat")),
-              PopupMenuItem(value: 'logout', child: Text("Logout")),
-            ],
-          ),
-        ],
-      ),
+      appBar: const CustomAppBar(),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -154,12 +125,14 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                       const Text("No nearby requests")
                     else
                       ...serviceRequests
-                          .take(3)
+                          // .take(3)
                           .map(
                             (request) => requestItem(
                               request['service_type'] ?? "",
+                              request['description'] ?? "",
                               "${request['location'] ?? "-"}",
-                              "",
+                              "${request['date'] ?? "-"}",
+                              "Rs. 1500", 
                             ),
                           ),
                   ],
@@ -176,7 +149,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => BrowseRequestsScreen(),
+                        builder: (context) => BrowseRequestsScreen(serviceRequests: serviceRequests),
                       ),
                     );
                   },
@@ -202,15 +175,16 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
               ),
               const SizedBox(height: 10),
 
-              if (jobs.isEmpty)
+              if (ongoingJobs.isEmpty)
                 const Text("No ongoing jobs")
               else
-                ...jobs.map(
+                ...ongoingJobs.map(
                   (job) => jobCard(
                     job['service_type'] ?? "",
 
-                    "${job['client_name'] ?? "-"} · Due ${DateTime.parse(job['date'] ?? "").day}/${DateTime.parse(job['date'] ?? "").month}/${DateTime.parse(job['date'] ?? "").year}",
+                    "${job['client_name'] ?? "-"} · Due ${job['date'] != null ? "${DateTime.parse(job['date']).day}/${DateTime.parse(job['date']).month}/${DateTime.parse(job['date']).year}" : "-"}",
                     job['status'] ?? "Pending",
+                    job,
                   ),
                 ),
 
@@ -220,7 +194,15 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            BrowsePastJobs(pastJobs: pastJobs),
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey[200],
                     foregroundColor: Colors.black,
@@ -230,7 +212,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text("All jobs"),
+                  child: const Text("View Job History"),
                 ),
               ),
             ],
@@ -241,28 +223,74 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
   }
 
   // Request Item Widget
-  Widget requestItem(String title, String subtitle, String price) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-              Text(subtitle, style: const TextStyle(color: Colors.grey)),
-            ],
-          ),
-          Text(price, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ],
+  Widget requestItem(
+  String serviceType,
+  String description,
+  String location,
+  String date,
+  String price, 
+) {
+  return Column(
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // LEFT SIDE
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    serviceType,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    location, // or description if you prefer
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Text(
+              price,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
-    );
-  }
+
+      // Divider like in first image
+      const Divider(height: 1, color: Colors.grey),
+    ],
+  );
+}
 
   // Job Card Widget
-  Widget jobCard(String title, String subtitle, String status) {
-    return Container(
+  Widget jobCard(String title, String subtitle, String status, Map job) {
+  return InkWell(
+    borderRadius: BorderRadius.circular(22),
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => JobDetailsScreen(job: job),
+        ),
+      );
+    },
+    child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -281,10 +309,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.grey[300],
                   borderRadius: BorderRadius.circular(20),
@@ -300,7 +325,6 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
             ],
           ),
           const SizedBox(height: 8),
-          
           LinearProgressIndicator(
             value: 0.5,
             backgroundColor: Colors.grey[300],
@@ -308,6 +332,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

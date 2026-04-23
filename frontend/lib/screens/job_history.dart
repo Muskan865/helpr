@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
-import '/widgets/appbar.dart';
+import 'package:helpr/widgets/appbar.dart';
 
-class BrowseRequestsScreen extends StatefulWidget {
-  // final int workerId;
-  final List<dynamic> serviceRequests;
-  const BrowseRequestsScreen({super.key, required this.serviceRequests});
+class BrowsePastJobs extends StatefulWidget {
+  final List<dynamic> pastJobs;
+
+  const BrowsePastJobs({super.key, required this.pastJobs});
 
   @override
-  State<BrowseRequestsScreen> createState() => _BrowseRequestsScreenState();
+  State<BrowsePastJobs> createState() => _BrowsePastJobsState();
 }
 
-class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
-  
+class _BrowsePastJobsState extends State<BrowsePastJobs> {
   bool isLoading = true;
   String? error;
 
@@ -30,20 +28,20 @@ class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
         child: ListView(
           children: [
             const Text(
-              "Nearby Requests",
+              "Job History",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
 
-            if (widget.serviceRequests.isEmpty)
+            if (widget.pastJobs.isEmpty)
               const Text("No nearby requests")
             else
-              ...widget.serviceRequests.map(
-                (request) => requestCard(
-                  request['service_type'] ?? "",
-                  request['description'] ?? "",
-                  "${request['location'] ?? "-"}",
-                  "${request['date'] ?? "-"}",
+              ...widget.pastJobs.map(
+                (job) => requestCard(
+                  job['service_type'] ?? "",
+                  job['description'] ?? "",
+                  "${job['location'] ?? "-"}",
+                  "${job['date'] ?? "-"}",
                 ),
               ),
           ],
@@ -98,22 +96,6 @@ class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
           ),
           const SizedBox(height: 6),
 
-          const SizedBox(height: 12),
-
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              child: const Text("Place Bid"),
-            ),
-          ),
         ],
       ),
     );

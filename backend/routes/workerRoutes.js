@@ -5,7 +5,8 @@ const {
   getWorkerJobs,
   getWorkerBids,
   getWorkerProfile,
-  getAllRequests
+  getAllRequests,
+  getMatchingRequests
 } = require('../controllers/workerController');
 
 router.get('/requests', getAllRequests);
@@ -13,5 +14,6 @@ router.get('/requests', getAllRequests);
 router.get('/:id/jobs', getWorkerJobs);
 router.get('/:id/bids', getWorkerBids);
 router.get('/:id/profile', getWorkerProfile);
+router.get('/:id/matching-requests', getMatchingRequests);
 
 module.exports = router;

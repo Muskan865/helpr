@@ -28,7 +28,8 @@ VALUES
 
 INSERT INTO job (request_id, worker_id, status)
 VALUES
-(2, 2, 'ongoing');
+(2, 2, 'ongoing'),
+(1, 2, 'Completed');
 
 INSERT INTO message (job_id, sender_id, content)
 VALUES

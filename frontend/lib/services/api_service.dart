@@ -1,11 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-
-
 //"http://10.0.2.2:3000/api"; for phone
 class ApiService {
-  static const String baseUrl = "http://10.20.6.68:3000/api"; 
+  static const String baseUrl = "http://10.20.2.98:3000/api";
 
   //Get Worker Jobs
   static Future<List<dynamic>> getWorkerJobs(int workerId) async {
@@ -47,16 +45,27 @@ class ApiService {
       throw Exception("Failed to load profile");
     }
   }
+
   // Get all service requests
   static Future<List<dynamic>> getAllRequests() async {
-    final response = await http.get(
-      Uri.parse("$baseUrl/worker/requests"),
-    );
+    final response = await http.get(Uri.parse("$baseUrl/worker/requests"));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       throw Exception("Failed to load requests");
+    }
+  }
+
+  static Future<List<dynamic>> getMatchingRequests(int workerId) async {
+    final response = await http.get(
+      Uri.parse("$baseUrl/worker/$workerId/matching-requests"),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to load matching requests");
     }
   }
 }

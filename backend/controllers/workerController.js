@@ -98,3 +98,41 @@ exports.getAllRequests = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getMatchingRequests = async (req, res) => {
+  try {
+    const workerId = req.params.id;
+    const pool = await poolPromise;
+
+    const workerResult = await pool.request()
+      .input('workerId', workerId)
+      .query(`
+        SELECT profession, skills FROM worker WHERE id = @workerId
+      `);
+
+    if (workerResult.recordset.length === 0) {
+      return res.status(404).json({ error: "Worker not found" });
+    }
+
+    const worker = workerResult.recordset[0];
+    const profession = worker.profession.toLowerCase();
+    const skills = worker.skills.toLowerCase().split(',').map(s => s.trim());
+
+    // Get all open requests
+    const requestsResult = await pool.request()
+      .query(`
+        SELECT * FROM service_request WHERE status = 'open'
+      `);
+
+    // Filter requests that match profession or skills
+    const matchingRequests = requestsResult.recordset.filter(request => {
+      const serviceType = request.service_type.toLowerCase();
+      return serviceType.includes(profession) || 
+             skills.some(skill => serviceType.includes(skill));
+    });
+
+    res.json(matchingRequests);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
