@@ -17,6 +17,7 @@ exports.getWorkerJobs = async (req, res) => {
           sr.date, 
           sr.time,
           u.full_name AS client_name,
+          u.id AS client_id,
           b.bid_amount
 
         FROM job j
@@ -109,12 +110,6 @@ exports.getAllRequests = async (req, res) => {
         SELECT *
         FROM service_request r
         WHERE r.status = 'open'
-        AND NOT EXISTS (
-          SELECT 1
-          FROM bid b
-          WHERE b.request_id = r.id
-          AND b.worker_id = @workerId
-        )
       `);
 
     res.json(result.recordset);
@@ -129,38 +124,46 @@ exports.getMatchingRequests = async (req, res) => {
     const workerId = req.params.id;
     const pool = await poolPromise;
 
-    const workerResult = await pool.request().input("workerId", workerId)
-      .query(`
-        SELECT profession, skills FROM worker WHERE id = @workerId
-      `);
+    const workerResult = await pool.request()
+      .input("workerId", workerId)
+      .query(`SELECT profession, skills FROM worker WHERE id = @workerId`);
 
     if (workerResult.recordset.length === 0) {
       return res.status(404).json({ error: "Worker not found" });
     }
 
     const worker = workerResult.recordset[0];
-    const profession = worker.profession.toLowerCase();
-    const skills = worker.skills
-      .toLowerCase()
-      .split(",")
-      .map((s) => s.trim());
 
-    // Get all open requests
-    const requestsResult = await pool.request().query(`
-        SELECT * FROM service_request WHERE status = 'open'
+    if (!worker.profession || !worker.skills) {
+      return res.status(400).json({ error: "Worker profile incomplete" });
+    }
+
+    const profession = worker.profession.toLowerCase();
+    const skills = worker.skills.toLowerCase().split(",").map((s) => s.trim());
+
+    const requestsResult = await pool.request()
+      .input("workerId", workerId)
+      .query(`
+        SELECT * FROM service_request r
+        WHERE r.status = 'open'
+        AND NOT EXISTS (
+          SELECT 1 FROM bid b
+          WHERE b.request_id = r.id
+          AND b.worker_id = @workerId
+        )
       `);
 
-    // Filter requests that match profession or skills
     const matchingRequests = requestsResult.recordset.filter((request) => {
-      const serviceType = request.service_type.toLowerCase();
+      const serviceType = (request.service_type || "").toLowerCase();
       return (
         serviceType.includes(profession) ||
-        skills.some((skill) => serviceType.includes(skill))
+        skills.some((skill) => skill && serviceType.includes(skill))
       );
     });
 
     res.json(matchingRequests);
   } catch (err) {
+    console.error("getMatchingRequests error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
@@ -247,5 +250,28 @@ exports.updateJobStatus = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.submitReview = async (req, res) => {
+  try {
+    const { reviewer_id, reviewee_id, rating, comment } = req.body;
+    console.log("Review data received:", req.body);
+    const pool = await poolPromise;
+
+    await pool.request()
+      .input('reviewer_id', reviewer_id)
+      .input('reviewee_id', reviewee_id)
+      .input('rating', rating)
+      .input('comment', comment)
+      .query(`
+        INSERT INTO rating_review (reviewer_id, reviewee_id, rating, comment)
+        VALUES (@reviewer_id, @reviewee_id, @rating, @comment)
+      `);
+
+    res.json({ message: "Review submitted" });
+  } catch (err) {
+    console.error("submitReview FULL ERROR:", err.message);
+    res.status(500).json({ error: err.message });
   }
 };

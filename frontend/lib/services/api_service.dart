@@ -113,4 +113,26 @@ class ApiService {
       throw Exception("Failed to update status");
     }
   }
+
+  static Future<void> submitReview({
+  required int reviewerId,
+  required int revieweeId,
+  required int rating,
+  required String comment,
+}) async {
+  final response = await http.post(
+    Uri.parse("$baseUrl/worker/review"),
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({
+      "reviewer_id": reviewerId,
+      "reviewee_id": revieweeId,
+      "rating": rating,
+      "comment": comment,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception("Failed to submit review");
+  }
+}
 }

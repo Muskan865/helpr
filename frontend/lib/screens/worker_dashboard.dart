@@ -213,7 +213,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                     job['service_type'] ?? "",
 
                     "${job['client_name'] ?? "-"} · Due ${job['date'] != null ? "${DateTime.parse(job['date']).day}/${DateTime.parse(job['date']).month}/${DateTime.parse(job['date']).year}" : "-"}",
-                    job['status'] ?? "Pending",
+                    // job['status'] ?? "Pending",
                     job,
                   ),
                 ),
@@ -309,14 +309,14 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
 }
 
   // Job Card Widget
-  Widget jobCard(String title, String subtitle, String status, Map job) {
+  Widget jobCard(String title, String subtitle, Map job) {
   return InkWell(
     borderRadius: BorderRadius.circular(22),
     onTap: () {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => JobDetailsScreen(job: job),
+          builder: (context) => JobDetailsScreen(job: job, workerId: workerId),
         ),
       );
     },
@@ -338,14 +338,14 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(status, style: const TextStyle(fontSize: 12)),
-              ),
+              // Container(
+              //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              //   decoration: BoxDecoration(
+              //     color: Colors.grey[300],
+              //     borderRadius: BorderRadius.circular(20),
+              //   ),
+              //   // child: Text(status, style: const TextStyle(fontSize: 12)),
+              // ),
             ],
           ),
           const SizedBox(height: 5),
