@@ -10,3 +10,7 @@ app.use(express.json());
 app.use('/api/worker', workerRoutes);
 
 module.exports = app;
+
+const chatRoutes = require("./routes/chatRoutes");
+
+app.use("/api/chat", chatRoutes);

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:helpr/screens/login_screen.dart';
 import 'package:helpr/screens/splash_screen.dart';
-import 'screens/worker_dashboard.dart';
+import 'screens/requester_dashboard.dart';
 
 
 
@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: WorkerDashboard(),
+      home: RequesterDashboard(),
     );
   }
 }
