@@ -18,10 +18,12 @@ class BrowseRequestsScreen extends StatefulWidget {
 class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
   bool isLoading = true;
   String? error;
+  late List<dynamic> requests;
 
   @override
   void initState() {
     super.initState();
+    requests = List.from(widget.serviceRequests);
   }
 
   @override
@@ -38,10 +40,10 @@ class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
             ),
             const SizedBox(height: 12),
 
-            if (widget.serviceRequests.isEmpty)
+            if (requests.isEmpty)
               const Text("No nearby requests")
             else
-              ...widget.serviceRequests.map((request) => requestCard(request)),
+              ...requests.map((request) => requestCard(request)),
           ],
         ),
       ),
@@ -149,10 +151,10 @@ class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                print("Submit clicked");
-                final amountText = amountController.text.trim();
-                final amount = double.tryParse(amountController.text.trim())?.toInt();
-                print("Parsed amount: $amount");
+                final amount = double.tryParse(
+                  amountController.text.trim(),
+                )?.toInt();
+
                 if (amount == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Enter a valid number")),
@@ -161,7 +163,6 @@ class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
                 }
 
                 try {
-                  print("Calling placeBid API...");
                   await ApiService.placeBid(
                     requestId: requestId,
                     workerId: widget.workerId,
@@ -170,9 +171,12 @@ class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
                         "${now.year}-${twoDigits(now.month)}-${twoDigits(now.day)}",
                     todaytime:
                         "${twoDigits(now.hour)}:${twoDigits(now.minute)}:${twoDigits(now.second)}",
-                    // message: messageController.text,
                   );
-                  print("API call finished");
+
+                
+                  setState(() {
+                    requests.removeWhere((r) => r['id'] == requestId);
+                  });
 
                   Navigator.pop(context);
 
@@ -180,7 +184,6 @@ class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
                     const SnackBar(content: Text("Bid placed successfully")),
                   );
                 } catch (e) {
-                  print("Error: $e");
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Error placing bid")),
                   );

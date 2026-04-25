@@ -36,8 +36,8 @@ class ApiService {
     final response = await http.get(
       Uri.parse("$baseUrl/worker/$workerId/profile"),
     );
-    print("PROFILE STATUS: ${response.statusCode}");
-    print("PROFILE BODY: ${response.body}");
+    // print("PROFILE STATUS: ${response.statusCode}");
+    // print("PROFILE BODY: ${response.body}");
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -77,7 +77,6 @@ class ApiService {
     required String todaytime,
   }) async {
     final response = await http.post(
-      
       Uri.parse("$baseUrl/worker/$workerId/place-bid"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
@@ -90,7 +89,28 @@ class ApiService {
     );
 
     if (response.statusCode != 200) {
-      print("Bid error body: ${response.body}");  // Add this
+      print("Bid error body: ${response.body}"); // Add this
       throw Exception("Failed to place bid");
     }
-  }}
+  }
+
+  static Future<void> cancelBid(int bidId) async {
+    final response = await http.delete(Uri.parse("$baseUrl/worker/bid/$bidId"));
+
+    if (response.statusCode != 200) {
+      throw Exception("Failed to cancel bid");
+    }
+  }
+
+  static Future<void> updateJobStatus(int jobId, String status) async {
+    final response = await http.put(
+      Uri.parse("$baseUrl/job/$jobId/status"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"status": status}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception("Failed to update status");
+    }
+  }
+}

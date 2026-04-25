@@ -1,15 +1,13 @@
-const { poolPromise } = require('../config/db');
+const { poolPromise } = require("../config/db");
 
 exports.getWorkerJobs = async (req, res) => {
   try {
-    console.log("Connected to API");
     const workerId = req.params.id;
-    console.log("Worker ID:", workerId);
 
     const pool = await poolPromise;
 
     const result = await pool.request()
-      .input('workerId', workerId)
+      .input("workerId", workerId)
       .query(`
         SELECT 
           j.*, 
@@ -18,15 +16,25 @@ exports.getWorkerJobs = async (req, res) => {
           sr.location, 
           sr.date, 
           sr.time,
-          u.full_name AS client_name 
+          u.full_name AS client_name,
+          b.bid_amount
+
         FROM job j
-        JOIN service_request sr ON j.request_id = sr.id
-        JOIN users u ON sr.requester_id = u.id  
+
+        JOIN service_request sr 
+          ON j.request_id = sr.id
+
+        JOIN users u 
+          ON sr.requester_id = u.id  
+
+        JOIN bid b 
+          ON b.request_id = j.request_id 
+          AND b.worker_id = j.worker_id
+
         WHERE j.worker_id = @workerId
       `);
 
     res.json(result.recordset);
-    console.log("Jobs fetched successfully");
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -39,17 +47,31 @@ exports.getWorkerBids = async (req, res) => {
     console.log("Worker ID:", workerId);
     const pool = await poolPromise;
 
-    const result = await pool.request()
-      .input('workerId', workerId)
-      .query(`
-        SELECT b.*, sr.description
+    const result = await pool.request().input("workerId", workerId).query(`
+        SELECT 
+          b.id AS bid_id,
+          b.request_id,
+          b.worker_id,
+          b.bid_amount,
+          b.status AS bid_status,
+
+          r.requester_id,
+          r.service_type,
+          r.description,
+          r.date,
+          r.time,
+          r.location
+
         FROM bid b
-        JOIN service_request sr ON b.request_id = sr.id
+        JOIN service_request r 
+          ON b.request_id = r.id
+
         WHERE b.worker_id = @workerId
+        AND b.status = 'pending'
       `);
 
     res.json(result.recordset);
-    console.log("Bids fetched successfully");
+    console.log("Bids fetched successfully ");
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -63,9 +85,7 @@ exports.getWorkerProfile = async (req, res) => {
 
     const pool = await poolPromise;
 
-    const result = await pool.request()
-      .input('workerId', workerId)
-      .query(`
+    const result = await pool.request().input("workerId", workerId).query(`
         SELECT u.full_name, u.avg_rating, w.profession, w.skills, w.experience_years
         FROM worker w
         JOIN users u ON w.user_id = u.id
@@ -85,11 +105,16 @@ exports.getAllRequests = async (req, res) => {
 
     const pool = await poolPromise;
 
-    const result = await pool.request()
-      .query(`
-        SELECT s.*
-        FROM service_request s
-        WHERE s.status = 'open'
+    const result = await pool.request().query(`
+        SELECT *
+        FROM service_request r
+        WHERE r.status = 'open'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM bid b
+          WHERE b.request_id = r.id
+          AND b.worker_id = @workerId
+        )
       `);
 
     res.json(result.recordset);
@@ -104,8 +129,7 @@ exports.getMatchingRequests = async (req, res) => {
     const workerId = req.params.id;
     const pool = await poolPromise;
 
-    const workerResult = await pool.request()
-      .input('workerId', workerId)
+    const workerResult = await pool.request().input("workerId", workerId)
       .query(`
         SELECT profession, skills FROM worker WHERE id = @workerId
       `);
@@ -116,19 +140,23 @@ exports.getMatchingRequests = async (req, res) => {
 
     const worker = workerResult.recordset[0];
     const profession = worker.profession.toLowerCase();
-    const skills = worker.skills.toLowerCase().split(',').map(s => s.trim());
+    const skills = worker.skills
+      .toLowerCase()
+      .split(",")
+      .map((s) => s.trim());
 
     // Get all open requests
-    const requestsResult = await pool.request()
-      .query(`
+    const requestsResult = await pool.request().query(`
         SELECT * FROM service_request WHERE status = 'open'
       `);
 
     // Filter requests that match profession or skills
-    const matchingRequests = requestsResult.recordset.filter(request => {
+    const matchingRequests = requestsResult.recordset.filter((request) => {
       const serviceType = request.service_type.toLowerCase();
-      return serviceType.includes(profession) || 
-             skills.some(skill => serviceType.includes(skill));
+      return (
+        serviceType.includes(profession) ||
+        skills.some((skill) => serviceType.includes(skill))
+      );
     });
 
     res.json(matchingRequests);
@@ -146,21 +174,78 @@ exports.placeBid = async (req, res) => {
 
     const pool = await poolPromise;
 
-    await pool.request()
-      .input('request_id', request_id)
-      .input('worker_id', worker_id)
-      .input('bid_amount', bid_amount)
-      .input('bid_date', bid_date)
-      .input('bid_time', bid_time)
-      .input('status', status)
-      .query(`
+    await pool
+      .request()
+      .input("request_id", request_id)
+      .input("worker_id", worker_id)
+      .input("bid_amount", bid_amount)
+      .input("bid_date", bid_date)
+      .input("bid_time", bid_time)
+      .input("status", status).query(`
         INSERT INTO bid (request_id, worker_id, bid_amount, bid_date, bid_time, status)
         VALUES (@request_id, @worker_id, @bid_amount, @bid_date, @bid_time, @status)
       `);
 
     res.json({ success: true, message: "Bid placed successfully" });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+exports.cancelBid = async (req, res) => {
+  try {
+    const bidId = req.params.id;
+
+    const pool = await poolPromise;
+
+    // First check if bid exists and is still pending
+    const check = await pool.request().input("bidId", bidId).query(`
+        SELECT status 
+        FROM bid 
+        WHERE id = @bidId
+      `);
+
+    if (check.recordset.length === 0) {
+      return res.status(404).json({ message: "Bid not found" });
+    }
+
+    if (check.recordset[0].status !== "pending") {
+      return res.status(400).json({
+        message: "Only pending bids can be cancelled",
+      });
+    }
+
+    await pool.request().input("bidId", bidId).query(`
+        DELETE FROM bid
+        WHERE id = @bidId
+      `);
+
+    return res.json({ message: "Bid cancelled successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.updateJobStatus = async (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const { status } = req.body;
+
+    const pool = await poolPromise;
+
+    await pool.request()
+      .input('jobId', jobId)
+      .input('status', status)
+      .query(`
+        UPDATE job
+        SET status = @status
+        WHERE id = @jobId
+      `);
+
+    res.json({ message: "Status updated" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 };

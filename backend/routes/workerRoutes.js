@@ -7,11 +7,15 @@ const {
   getWorkerProfile,
   getAllRequests,
   getMatchingRequests,
-  placeBid
+  placeBid,
+  cancelBid,
+  updateJobStatus
 } = require('../controllers/workerController');
 
 router.get('/requests', getAllRequests);
 router.post('/:id/place-bid', placeBid);
+router.delete('/bid/:id', cancelBid);
+router.put('/job/:id/status', updateJobStatus);
 
 router.get('/:id/jobs', getWorkerJobs);
 router.get('/:id/bids', getWorkerBids);

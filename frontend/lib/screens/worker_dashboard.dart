@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'browse_requests_screen.dart';
+import 'browse_bids.dart';
 import 'job_history.dart';
 import 'job_detail.dart';
 import '/widgets/appbar.dart';
@@ -32,7 +33,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
   Future<void> fetchData() async {
     try {
       profile = await ApiService.getWorkerProfile(workerId);
-      print("Profile: $profile");
+      // print("Profile: $profile");
     } catch (e) {
       print("Profile error: $e");
       setState(() {
@@ -43,7 +44,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     try {
       ongoingJobs = (await ApiService.getWorkerJobs(
         workerId,
-      )).where((job) => job['status'] == "ongoing").toList();
+      )).where((job) => job['status'] == "arriving").toList();
       pastJobs = (await ApiService.getWorkerJobs(
         workerId,
       )).where((job) => job['status'] == "completed").toList();
@@ -56,6 +57,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     }
     try {
       bids = await ApiService.getWorkerBids(workerId);
+      print("Bids: $bids");
     } catch (e) {
       print("Bids error: $e");
       setState(() {
@@ -65,7 +67,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     }
     try {
       serviceRequests = await ApiService.getMatchingRequests(workerId);
-      print("dashboard_Requests: $serviceRequests");
+      // print("dashboard_Requests: $serviceRequests");
     } catch (e) {
       print("Requests error: $e");
       setState(() {
@@ -106,6 +108,33 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
               ),
               const SizedBox(height: 20),
 
+              // Browse Requests Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BrowseRequestsScreen(workerId: workerId, serviceRequests: serviceRequests),
+                      ),
+                    );
+                  },
+
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text("Browse More requests"),
+                ),
+              ),
+
+              const SizedBox(height: 20),
               // Nearby Requests
               Container(
                 padding: const EdgeInsets.all(16),
@@ -140,8 +169,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
               ),
 
               const SizedBox(height: 20),
-
-              // Browse Requests Button
+              // Browse Bids Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -149,7 +177,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => BrowseRequestsScreen(workerId: workerId, serviceRequests: serviceRequests),
+                        builder: (context) => BrowseBidsScreen(bids: bids),
                       ),
                     );
                   },
@@ -163,11 +191,13 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text("Browse More requests"),
+                  child: const Text("Browse My Bids"),
                 ),
               ),
 
+
               const SizedBox(height: 20),
+
 
               const Text(
                 "ONGOING JOBS",
