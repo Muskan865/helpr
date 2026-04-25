@@ -302,29 +302,29 @@ class RequesterDashboard extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 12),
+  //           const SizedBox(height: 12),
 
-            // History Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  "History",
-                  style: GoogleFonts.nunito(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
+  //           // History Button
+  //           SizedBox(
+  //             width: double.infinity,
+  //             child: ElevatedButton(
+  //               onPressed: () {},
+  //               style: ElevatedButton.styleFrom(
+  //                 backgroundColor: Colors.blue,
+  //                 padding: const EdgeInsets.symmetric(vertical: 14),
+  //                 shape: RoundedRectangleBorder(
+  //                   borderRadius: BorderRadius.circular(10),
+  //                 ),
+  //               ),
+  //               child: Text(
+  //                 "History",
+  //                 style: GoogleFonts.nunito(
+  //                   color: Colors.white,
+  //                   fontWeight: FontWeight.w700,
+  //                 ),
+  //               ),
+  //             ),
+  //           ),
 
             const SizedBox(height: 6),
           ],
