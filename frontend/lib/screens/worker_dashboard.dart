@@ -6,9 +6,10 @@ import 'job_history.dart';
 import 'job_detail.dart';
 import '/widgets/appbar.dart';
 
-
 class WorkerDashboard extends StatefulWidget {
-  const WorkerDashboard({super.key});
+  final int? userId;
+
+  const WorkerDashboard({super.key, this.userId});
 
   @override
   State<WorkerDashboard> createState() => _WorkerDashboardState();
@@ -20,61 +21,62 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
   List<dynamic> pastJobs = [];
   List<dynamic> bids = [];
   List<dynamic> serviceRequests = [];
+
   bool isLoading = true;
   String? error;
 
-  int workerId = 2;
+  late int workerId;
 
   @override
   void initState() {
     super.initState();
+    workerId = widget.userId ?? 1;
     fetchData();
   }
+
   Future<void> fetchData() async {
     try {
       profile = await ApiService.getWorkerProfile(workerId);
-      // print("Profile: $profile");
     } catch (e) {
-      print("Profile error: $e");
       setState(() {
         error = "Failed at profile";
         isLoading = false;
       });
     }
+
     try {
-      ongoingJobs = (await ApiService.getWorkerJobs(
-        workerId,
-      )).where((job) => job['status'] == "arriving").toList();
-      pastJobs = (await ApiService.getWorkerJobs(
-        workerId,
-      )).where((job) => job['status'] == "completed").toList();
+      ongoingJobs = (await ApiService.getWorkerJobs(workerId))
+          .where((job) => job['status'] == "arriving")
+          .toList();
+
+      pastJobs = (await ApiService.getWorkerJobs(workerId))
+          .where((job) => job['status'] == "completed")
+          .toList();
     } catch (e) {
-      print("Jobs error: $e");
       setState(() {
         error = "Failed at jobs";
         isLoading = false;
       });
     }
+
     try {
       bids = await ApiService.getWorkerBids(workerId);
-      print("Bids: $bids");
     } catch (e) {
-      print("Bids error: $e");
       setState(() {
         error = "Failed at bids";
         isLoading = false;
       });
     }
+
     try {
       serviceRequests = await ApiService.getMatchingRequests(workerId);
-      // print("dashboard_Requests: $serviceRequests");
     } catch (e) {
-      print("Requests error: $e");
       setState(() {
         error = "Failed at requests";
         isLoading = false;
       });
     }
+
     setState(() {
       isLoading = false;
     });
@@ -83,22 +85,64 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
+
     if (error != null) {
-      return Scaffold(body: Center(child: Text(error!)));
+      return Scaffold(
+        body: Center(child: Text(error!)),
+      );
     }
+
     return Scaffold(
-      appBar: const CustomAppBar(),
+      appBar: AppBar(
+        title: const Text("Helpr"),
+        centerTitle: true,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_horiz),
+            onSelected: (value) {
+              switch (value) {
+                case 'profile':
+                  Navigator.pushNamed(
+                    context,
+                    '/workerProfile',
+                    arguments: {'userId': workerId},
+                  );
+                  break;
+
+                case 'logout':
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
+                  break;
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'profile', child: Text("Profile")),
+              PopupMenuItem(value: 'logout', child: Text("Logout")),
+            ],
+          ),
+        ],
+      ),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome Text
-              const Text("Welcome back,", style: TextStyle(color: Colors.grey)),
+              const Text(
+                "Welcome back,",
+                style: TextStyle(color: Colors.grey),
+              ),
+
               const SizedBox(height: 5),
+
               Text(
                 profile?['full_name'] ?? "Worker",
                 style: const TextStyle(
@@ -106,9 +150,9 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
               const SizedBox(height: 20),
 
-              // Browse Requests Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -116,7 +160,10 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => BrowseRequestsScreen(workerId: workerId, serviceRequests: serviceRequests),
+                        builder: (context) => BrowseRequestsScreen(
+                          workerId: workerId,
+                          serviceRequests: serviceRequests,
+                        ),
                       ),
                     );
                   },
@@ -135,7 +182,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
               ),
 
               const SizedBox(height: 20),
-              // Nearby Requests
+
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -146,30 +193,29 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Nearby requests",
+                      "Nearby Requests",
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
+
                     if (serviceRequests.isEmpty)
                       const Text("No nearby requests")
                     else
-                      ...serviceRequests
-                          // .take(3)
-                          .map(
-                            (request) => requestItem(
-                              request['service_type'] ?? "",
-                              request['description'] ?? "",
-                              "${request['location'] ?? "-"}",
-                              "${request['date'] ?? "-"}",
-                              "Rs. 1500", 
-                            ),
-                          ),
+                      ...serviceRequests.map(
+                        (request) => requestItem(
+                          request['service_type'] ?? "",
+                          request['description'] ?? "",
+                          request['location'] ?? "-",
+                          request['date'] ?? "-",
+                          "Rs. 1500",
+                        ),
+                      ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 20),
-              // Browse Bids Button
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -195,14 +241,13 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                 ),
               ),
 
-
               const SizedBox(height: 20),
-
 
               const Text(
                 "ONGOING JOBS",
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 10),
 
               if (ongoingJobs.isEmpty)
@@ -220,7 +265,6 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
 
               const SizedBox(height: 20),
 
-              // All Jobs Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -252,7 +296,6 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     );
   }
 
-  // Request Item Widget
   Widget requestItem(
   String serviceType,
   String description,

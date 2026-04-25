@@ -9,6 +9,7 @@ const poolPromise = new sql.ConnectionPool(process.env.DB_CONNECTION)
     })
     .catch(err => {
         console.log("DB Connection Failed ❌", err);
+        throw err;
     });
 
 module.exports = {

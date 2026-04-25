@@ -1,9 +1,10 @@
 const { poolPromise } = require("../config/db");
 
+
+// ===================== GET WORKER JOBS =====================
 exports.getWorkerJobs = async (req, res) => {
   try {
     const workerId = req.params.id;
-
     const pool = await poolPromise;
 
     const result = await pool.request()
@@ -41,11 +42,11 @@ exports.getWorkerJobs = async (req, res) => {
   }
 };
 
+
+// ===================== GET WORKER BIDS =====================
 exports.getWorkerBids = async (req, res) => {
   try {
-    console.log("Connected to API");
     const workerId = req.params.id;
-    console.log("Worker ID:", workerId);
     const pool = await poolPromise;
 
     const result = await pool.request().input("workerId", workerId).query(`
@@ -72,38 +73,41 @@ exports.getWorkerBids = async (req, res) => {
       `);
 
     res.json(result.recordset);
-    console.log("Bids fetched successfully ");
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+
+// ===================== GET WORKER PROFILE =====================
 exports.getWorkerProfile = async (req, res) => {
   try {
-    console.log("Connected to API");
     const workerId = req.params.id;
-    console.log("Worker ID:", workerId);
-
     const pool = await poolPromise;
 
-    const result = await pool.request().input("workerId", workerId).query(`
+    const result = await pool.request()
+      .input("workerId", workerId)
+      .query(`
         SELECT u.full_name, u.avg_rating, w.profession, w.skills, w.experience_years
         FROM worker w
         JOIN users u ON w.user_id = u.id
-        WHERE w.id = @workerId
+        WHERE w.user_id = @workerId
       `);
 
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ message: "Worker not found" });
+    }
+
     res.json(result.recordset[0]);
-    console.log("Profile fetched successfully");
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+
+// ===================== GET ALL REQUESTS =====================
 exports.getAllRequests = async (req, res) => {
   try {
-    console.log("Connected to API");
-
     const pool = await poolPromise;
 
     const result = await pool.request().query(`
@@ -113,7 +117,6 @@ exports.getAllRequests = async (req, res) => {
       `);
 
     res.json(result.recordset);
-    console.log("Requests fetched successfully:", result.recordset.length);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -164,6 +167,50 @@ exports.getMatchingRequests = async (req, res) => {
     res.json(matchingRequests);
   } catch (err) {
     console.error("getMatchingRequests error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ===================== CREATE / UPDATE WORKER PROFILE =====================
+exports.createWorkerProfile = async (req, res) => {
+  try {
+    const { user_id, profession, skills, experience_years } = req.body;
+    const pool = await poolPromise;
+
+    const existing = await pool.request()
+      .input('user_id', user_id)
+      .query(`SELECT * FROM worker WHERE user_id = @user_id`);
+
+    if (existing.recordset.length > 0) {
+      await pool.request()
+        .input('user_id', user_id)
+        .input('profession', profession)
+        .input('skills', skills)
+        .input('experience_years', experience_years)
+        .query(`
+          UPDATE worker
+          SET profession = @profession,
+              skills = @skills,
+              experience_years = @experience_years
+          WHERE user_id = @user_id
+        `);
+
+      return res.json({ message: "Profile updated successfully" });
+    }
+
+    await pool.request()
+      .input('user_id', user_id)
+      .input('profession', profession)
+      .input('skills', skills)
+      .input('experience_years', experience_years)
+      .query(`
+        INSERT INTO worker (user_id, profession, skills, experience_years)
+        VALUES (@user_id, @profession, @skills, @experience_years)
+      `);
+
+    res.json({ message: "Profile created successfully" });
+
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };

@@ -1,6 +1,8 @@
 // login_screen.dart
 import 'package:flutter/material.dart';
 import 'signup_screen.dart';
+import '../services/api_service.dart';
+import 'worker_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -81,8 +83,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // Login button
               ElevatedButton(
-                onPressed: () {
-                  // TODO: connect backend
+                onPressed: () async {
+                  final result = await ApiService.login(
+                    _emailController.text,
+                    _passwordController.text,
+                  );
+
+                  if (result["message"] == "Login successful") {
+                    final role = result["user"]["role"];
+
+                    if (!mounted) return;
+
+                    if (role == "worker") {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => WorkerDashboard(userId: result["user"]["id"]),
+                        ),
+                      );
+                    } else {
+                      Navigator.pushNamed(
+                        context,
+                        '/requesterDashboard',
+                        arguments: {'userId': result["user"]["id"]},
+                      );
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(result["message"] ?? "Login failed")),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),

@@ -6,6 +6,7 @@ const {
   getWorkerBids,
   getWorkerProfile,
   getAllRequests,
+  createWorkerProfile,
   getMatchingRequests,
   placeBid,
   cancelBid,
@@ -13,15 +14,30 @@ const {
   submitReview
 } = require('../controllers/workerController');
 
+
+// ===================== REQUESTS =====================
 router.get('/requests', getAllRequests);
-router.post('/:id/place-bid', placeBid);
-router.delete('/bid/:id', cancelBid);
-router.put('/job/:id/status', updateJobStatus);
+router.get('/:id/matching-requests', getMatchingRequests);
 router.post('/review', submitReview);
 
+
+// ===================== WORKER DATA =====================
 router.get('/:id/jobs', getWorkerJobs);
 router.get('/:id/bids', getWorkerBids);
 router.get('/:id/profile', getWorkerProfile);
-router.get('/:id/matching-requests', getMatchingRequests);
+
+
+// ===================== PROFILE =====================
+router.post('/profile', createWorkerProfile);
+
+
+// ===================== BID SYSTEM =====================
+router.post('/:id/place-bid', placeBid);
+router.delete('/bid/:id', cancelBid);
+
+
+// ===================== JOB STATUS =====================
+router.put('/job/:id/status', updateJobStatus);
+
 
 module.exports = router;

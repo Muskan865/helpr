@@ -1,11 +1,11 @@
 -- Testing for worker dashboard
 INSERT INTO users (full_name, contact_number, password, role, profile_picture, avg_rating)
 VALUES
-('Ali Khan', '03001234567', 'pass123', 'worker', 0x, 4.5),
-('Sara Ahmed', '03007654321', 'worker123', 'worker', 0x, 4.7),
-('Usman Tariq', '03111222333', 'worker456', 'worker', 0x, 4.2),
-('Ayesha Malik', '03219876543', 'client123', 'client', 0x, 0),
-('Bilal Hussain', '03331234567', 'client456', 'client', 0x, 0);
+('Ali Khan', '03001234567', 'pass123', 'worker', NULL, 4.5),
+('Sara Ahmed', '03007654321', 'worker123', 'worker', NULL, 4.7),
+('Usman Tariq', '03111222333', 'worker456', 'worker', NULL, 4.2),
+('Ayesha Malik', '03219876543', 'client123', 'client', NULL, 0),
+('Bilal Hussain', '03331234567', 'client456', 'client', NULL, 0);
 
 
 INSERT INTO worker (user_id, profession, skills, experience_years)

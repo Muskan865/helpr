@@ -13,7 +13,6 @@ class RequesterDashboard extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0.5,
         shadowColor: Colors.grey.shade200,
-        // Three-line menu — opens the Drawer automatically
         leading: Builder(
           builder: (ctx) => IconButton(
             icon: const Icon(Icons.menu, color: Colors.black87),
@@ -158,22 +157,36 @@ class RequesterDashboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Greeting
-            Text(
-              "Good Morning,",
-              style: GoogleFonts.nunito(
-                color: Colors.grey,
-                fontSize: 14,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Good Morning,",
+                        style: GoogleFonts.nunito(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        "Sara Rahman",
+                        style: GoogleFonts.nunito(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_note_outlined,
+                        color: Colors.black87, size: 28),
+                    onPressed: () {},
+                  ),
+                ],
               ),
-            ),
-            Text(
-              "Sara Rahman",
-              style: GoogleFonts.nunito(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-
             const SizedBox(height: 20),
 
             // Received Bids Card
@@ -219,6 +232,10 @@ class RequesterDashboard extends StatelessWidget {
                 ],
               ),
             ),
+
+           
+        
+      
 
             const SizedBox(height: 14),
 

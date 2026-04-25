@@ -1,6 +1,9 @@
 // signup_screen.dart
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
+import '../services/api_service.dart';
+import 'worker_profile_completion_screen.dart';
+import 'requester_profile_completion_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -11,14 +14,15 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  String _role = "requester";
 
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -58,12 +62,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Email
+              // Phone
               TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
-                  labelText: 'Email or Phone',
+                  labelText: 'Phone Number (03XXXXXXXXX)',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -71,6 +75,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
+              DropdownButtonFormField<String>(
+                value: _role,
+                items: const [
+                  DropdownMenuItem(value: "requester", child: Text("Requester")),
+                  DropdownMenuItem(value: "worker", child: Text("Worker")),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _role = value!;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelText: "Select Role",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               // Password
               TextField(
                 controller: _passwordController,
@@ -95,8 +118,96 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
               // Sign Up button
               ElevatedButton(
-                onPressed: () {
-                  // TODO: connect backend
+                onPressed: () async {
+                  final name = _nameController.text.trim();
+                  final phone = _phoneController.text.trim();
+                  final password = _passwordController.text.trim();
+
+                  // 1. Empty check
+                  if (name.isEmpty || phone.isEmpty || password.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("⚠️ Please fill all fields")),
+                    );
+                    return;
+                  }
+
+                  // 2. Phone format check (Pakistan format)
+                  if (!RegExp(r'^03[0-9]{9}$').hasMatch(phone)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("📱 Enter phone like 03XXXXXXXXX"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // 3. Password strength check
+                  if (password.length < 6) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("🔒 Password must be at least 6 characters"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  try {
+                    final result = await ApiService.signup(
+                      name,
+                      phone,
+                      password,
+                      _role,
+                    );
+
+                    print("Signup response: $result");
+
+                    if (result["message"] == "User created successfully") {
+                      final userId = result["userId"];
+                      final role = result["role"] ?? _role;
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("✅ Account created successfully!"),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+
+                        // Navigate to appropriate profile completion screen
+                        await Future.delayed(const Duration(seconds: 1));
+                        if (mounted) {
+                          if (role == "worker") {
+                            Navigator.pushReplacementNamed(
+                              context,
+                              '/workerProfileCompletion',
+                              arguments: {'userId': userId},
+                            );
+                          } else {
+                            Navigator.pushReplacementNamed(
+                              context,
+                              '/requesterProfileCompletion',
+                              arguments: {'userId': userId},
+                            );
+                          }
+                        }
+                      }
+                    } else {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(result["message"] ?? "Signup failed"),
+                          ),
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    print("Signup error: $e");
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("❌ Server error: $e")),
+                      );
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
