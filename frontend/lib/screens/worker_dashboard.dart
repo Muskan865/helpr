@@ -149,7 +149,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => BrowseRequestsScreen(serviceRequests: serviceRequests),
+                        builder: (context) => BrowseRequestsScreen(workerId: workerId, serviceRequests: serviceRequests),
                       ),
                     );
                   },

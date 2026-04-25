@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 //"http://10.0.2.2:3000/api"; for phone
 class ApiService {
-  static const String baseUrl = "http://10.20.2.98:3000/api";
+  static const String baseUrl = "http://192.168.1.11:3000/api";
 
   //Get Worker Jobs
   static Future<List<dynamic>> getWorkerJobs(int workerId) async {
@@ -68,4 +68,29 @@ class ApiService {
       throw Exception("Failed to load matching requests");
     }
   }
-}
+
+  static Future<void> placeBid({
+    required int requestId,
+    required int workerId,
+    required int amount,
+    required String todaydate,
+    required String todaytime,
+  }) async {
+    final response = await http.post(
+      
+      Uri.parse("$baseUrl/worker/$workerId/place-bid"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "request_id": requestId,
+        "bid_amount": amount,
+        "bid_date": todaydate,
+        "bid_time": todaytime,
+        "status": "pending",
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      print("Bid error body: ${response.body}");  // Add this
+      throw Exception("Failed to place bid");
+    }
+  }}

@@ -136,3 +136,31 @@ exports.getMatchingRequests = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.placeBid = async (req, res) => {
+  console.log(req.body);
+  try {
+    console.log(req.body);
+    const worker_id = req.params.id;
+    const { request_id, bid_amount, bid_date, bid_time, status } = req.body;
+
+    const pool = await poolPromise;
+
+    await pool.request()
+      .input('request_id', request_id)
+      .input('worker_id', worker_id)
+      .input('bid_amount', bid_amount)
+      .input('bid_date', bid_date)
+      .input('bid_time', bid_time)
+      .input('status', status)
+      .query(`
+        INSERT INTO bid (request_id, worker_id, bid_amount, bid_date, bid_time, status)
+        VALUES (@request_id, @worker_id, @bid_amount, @bid_date, @bid_time, @status)
+      `);
+
+    res.json({ success: true, message: "Bid placed successfully" });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

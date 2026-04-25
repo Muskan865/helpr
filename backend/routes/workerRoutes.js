@@ -6,10 +6,12 @@ const {
   getWorkerBids,
   getWorkerProfile,
   getAllRequests,
-  getMatchingRequests
+  getMatchingRequests,
+  placeBid
 } = require('../controllers/workerController');
 
 router.get('/requests', getAllRequests);
+router.post('/:id/place-bid', placeBid);
 
 router.get('/:id/jobs', getWorkerJobs);
 router.get('/:id/bids', getWorkerBids);
