@@ -1,116 +1,189 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
-//"http://10.0.2.2:3000/api"; for phone
 class ApiService {
-  static const String baseUrl = "http://192.168.1.11:3000/api";
+  static const String baseUrl = "http://192.168.1.11:3000";
+  static const String apiBase = "$baseUrl/api";
 
-  //Get Worker Jobs
+  // ---------------- AUTH ----------------
+  static Future<Map<String, dynamic>> login(
+    String contact,
+    String password,
+  ) async {
+    final response = await http.post(
+      Uri.parse("$apiBase/auth/login"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "contact_number": contact,
+        "password": password,
+      }),
+    );
+
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> signup(
+    String name,
+    String contactNumber,
+    String password,
+    String role,
+  ) async {
+    final response = await http.post(
+      Uri.parse("$apiBase/auth/signup"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "full_name": name,
+        "contact_number": contactNumber,
+        "password": password,
+        "role": role,
+      }),
+    );
+
+    return jsonDecode(response.body);
+  }
+
+  // ---------------- WORKER DASHBOARD ----------------
+
   static Future<List<dynamic>> getWorkerJobs(int workerId) async {
-    final response = await http.get(
-      Uri.parse("$baseUrl/worker/$workerId/jobs"),
+    final res = await http.get(
+      Uri.parse("$apiBase/worker/$workerId/jobs"),
     );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Failed to load jobs");
-    }
+    return jsonDecode(res.body);
   }
 
-  //Get Worker Bids
   static Future<List<dynamic>> getWorkerBids(int workerId) async {
-    final response = await http.get(
-      Uri.parse("$baseUrl/worker/$workerId/bids"),
+    final res = await http.get(
+      Uri.parse("$apiBase/worker/$workerId/bids"),
     );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Failed to load bids");
-    }
+    return jsonDecode(res.body);
   }
 
-  //Get Worker Profile
   static Future<Map<String, dynamic>> getWorkerProfile(int workerId) async {
-    final response = await http.get(
-      Uri.parse("$baseUrl/worker/$workerId/profile"),
+    final res = await http.get(
+      Uri.parse("$apiBase/worker/$workerId/profile"),
     );
-    // print("PROFILE STATUS: ${response.statusCode}");
-    // print("PROFILE BODY: ${response.body}");
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+    if (res.statusCode == 200 && res.body.isNotEmpty) {
+      return jsonDecode(res.body);
     } else {
       throw Exception("Failed to load profile");
     }
   }
 
-  // Get all service requests
   static Future<List<dynamic>> getAllRequests() async {
-    final response = await http.get(Uri.parse("$baseUrl/worker/requests"));
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Failed to load requests");
-    }
+    final res = await http.get(
+      Uri.parse("$apiBase/worker/requests"),
+    );
+    return jsonDecode(res.body);
   }
 
   static Future<List<dynamic>> getMatchingRequests(int workerId) async {
-    final response = await http.get(
-      Uri.parse("$baseUrl/worker/$workerId/matching-requests"),
+    final res = await http.get(
+      Uri.parse("$apiBase/worker/$workerId/matching-requests"),
     );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Failed to load matching requests");
-    }
+    return jsonDecode(res.body);
   }
 
-  static Future<void> placeBid({
-    required int requestId,
-    required int workerId,
-    required int amount,
-    required String todaydate,
-    required String todaytime,
-  }) async {
-    final response = await http.post(
-      Uri.parse("$baseUrl/worker/$workerId/place-bid"),
+  // ---------------- WORKER PROFILE CREATION ----------------
+
+  static Future<Map<String, dynamic>> createWorkerProfile(
+    int userId,
+    String profession,
+    String skills,
+    int experience,
+  ) async {
+    final res = await http.post(
+      Uri.parse("$apiBase/worker/profile"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
-        "request_id": requestId,
-        "bid_amount": amount,
-        "bid_date": todaydate,
-        "bid_time": todaytime,
-        "status": "pending",
+        "user_id": userId,
+        "profession": profession,
+        "skills": skills,
+        "experience_years": experience,
       }),
     );
 
-    if (response.statusCode != 200) {
-      print("Bid error body: ${response.body}"); // Add this
-      throw Exception("Failed to place bid");
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body);
+    } else {
+      throw Exception("Failed: ${res.body}");
     }
   }
 
-  static Future<void> cancelBid(int bidId) async {
-    final response = await http.delete(Uri.parse("$baseUrl/worker/bid/$bidId"));
+  // ---------------- PROFILE COMPLETION ----------------
 
-    if (response.statusCode != 200) {
-      throw Exception("Failed to cancel bid");
-    }
-  }
-
-  static Future<void> updateJobStatus(int jobId, String status) async {
-    final response = await http.put(
-      Uri.parse("$baseUrl/worker/job/$jobId/status"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"status": status}),
+  static Future<Map<String, dynamic>> completeWorkerProfile(
+    int userId,
+    String profession,
+    String skills,
+    int experienceYears,
+    XFile? profilePicture,
+  ) async {
+    final request = http.MultipartRequest(
+      "POST",
+      Uri.parse("$apiBase/profile-completion/worker"),
     );
 
-    if (response.statusCode != 200) {
-      throw Exception("Failed to update status");
+    request.fields["userId"] = userId.toString();
+    request.fields["profession"] = profession;
+    request.fields["skills"] = skills;
+    request.fields["experience_years"] = experienceYears.toString();
+
+    if (profilePicture != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          "profile_picture",
+          await profilePicture.readAsBytes(),
+          filename: profilePicture.name,
+        ),
+      );
+    }
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> completeRequesterProfile(
+    int userId,
+    XFile? profilePicture,
+  ) async {
+    final request = http.MultipartRequest(
+      "POST",
+      Uri.parse("$apiBase/profile-completion/requester"),
+    );
+
+    request.fields["userId"] = userId.toString();
+
+    if (profilePicture != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          "profile_picture",
+          await profilePicture.readAsBytes(),
+          filename: profilePicture.name,
+        ),
+      );
+    }
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    return jsonDecode(response.body);
+  }
+
+  // ---------------- USER PROFILE ----------------
+
+  static Future<Map<String, dynamic>> getUserProfile(int userId) async {
+    final res = await http.get(
+      Uri.parse("$apiBase/profile/user/$userId"),
+    );
+
+    if (res.statusCode == 200 && res.body.isNotEmpty) {
+      return jsonDecode(res.body);
+    } else {
+      throw Exception("Failed to load user profile");
     }
   }
 }

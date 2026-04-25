@@ -1,9 +1,10 @@
 const { poolPromise } = require("../config/db");
 
+
+// ===================== GET WORKER JOBS =====================
 exports.getWorkerJobs = async (req, res) => {
   try {
     const workerId = req.params.id;
-
     const pool = await poolPromise;
 
     const result = await pool.request()
@@ -16,21 +17,10 @@ exports.getWorkerJobs = async (req, res) => {
           sr.location, 
           sr.date, 
           sr.time,
-          u.full_name AS client_name,
-          b.bid_amount
-
+          u.full_name AS client_name
         FROM job j
-
-        JOIN service_request sr 
-          ON j.request_id = sr.id
-
-        JOIN users u 
-          ON sr.requester_id = u.id  
-
-        JOIN bid b 
-          ON b.request_id = j.request_id 
-          AND b.worker_id = j.worker_id
-
+        JOIN service_request sr ON j.request_id = sr.id
+        JOIN users u ON sr.requester_id = u.id  
         WHERE j.worker_id = @workerId
       `);
 
@@ -40,212 +30,113 @@ exports.getWorkerJobs = async (req, res) => {
   }
 };
 
+
+// ===================== GET WORKER BIDS =====================
 exports.getWorkerBids = async (req, res) => {
   try {
-    console.log("Connected to API");
     const workerId = req.params.id;
-    console.log("Worker ID:", workerId);
     const pool = await poolPromise;
 
-    const result = await pool.request().input("workerId", workerId).query(`
-        SELECT 
-          b.id AS bid_id,
-          b.request_id,
-          b.worker_id,
-          b.bid_amount,
-          b.status AS bid_status,
-
-          r.requester_id,
-          r.service_type,
-          r.description,
-          r.date,
-          r.time,
-          r.location
-
+    const result = await pool.request()
+      .input("workerId", workerId)
+      .query(`
+        SELECT b.*, r.service_type, r.description, r.date, r.time, r.location
         FROM bid b
-        JOIN service_request r 
-          ON b.request_id = r.id
-
+        JOIN service_request r ON b.request_id = r.id
         WHERE b.worker_id = @workerId
-        AND b.status = 'pending'
       `);
 
     res.json(result.recordset);
-    console.log("Bids fetched successfully ");
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+
+// ===================== GET WORKER PROFILE =====================
 exports.getWorkerProfile = async (req, res) => {
   try {
-    console.log("Connected to API");
     const workerId = req.params.id;
-    console.log("Worker ID:", workerId);
-
     const pool = await poolPromise;
 
-    const result = await pool.request().input("workerId", workerId).query(`
+    const result = await pool.request()
+      .input("workerId", workerId)
+      .query(`
         SELECT u.full_name, u.avg_rating, w.profession, w.skills, w.experience_years
         FROM worker w
         JOIN users u ON w.user_id = u.id
-        WHERE w.id = @workerId
+        WHERE w.user_id = @workerId
       `);
 
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ message: "Worker not found" });
+    }
+
     res.json(result.recordset[0]);
-    console.log("Profile fetched successfully");
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+
+// ===================== GET ALL REQUESTS =====================
 exports.getAllRequests = async (req, res) => {
   try {
-    console.log("Connected to API");
-
     const pool = await poolPromise;
 
     const result = await pool.request().query(`
-        SELECT *
-        FROM service_request r
-        WHERE r.status = 'open'
-        AND NOT EXISTS (
-          SELECT 1
-          FROM bid b
-          WHERE b.request_id = r.id
-          AND b.worker_id = @workerId
-        )
-      `);
+      SELECT *
+      FROM service_request
+      WHERE status = 'open'
+    `);
 
     res.json(result.recordset);
-    console.log("Requests fetched successfully:", result.recordset.length);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-exports.getMatchingRequests = async (req, res) => {
+
+// ===================== CREATE / UPDATE WORKER PROFILE =====================
+exports.createWorkerProfile = async (req, res) => {
   try {
-    const workerId = req.params.id;
+    const { user_id, profession, skills, experience_years } = req.body;
     const pool = await poolPromise;
 
-    const workerResult = await pool.request().input("workerId", workerId)
-      .query(`
-        SELECT profession, skills FROM worker WHERE id = @workerId
-      `);
+    const existing = await pool.request()
+      .input('user_id', user_id)
+      .query(`SELECT * FROM worker WHERE user_id = @user_id`);
 
-    if (workerResult.recordset.length === 0) {
-      return res.status(404).json({ error: "Worker not found" });
+    if (existing.recordset.length > 0) {
+      await pool.request()
+        .input('user_id', user_id)
+        .input('profession', profession)
+        .input('skills', skills)
+        .input('experience_years', experience_years)
+        .query(`
+          UPDATE worker
+          SET profession = @profession,
+              skills = @skills,
+              experience_years = @experience_years
+          WHERE user_id = @user_id
+        `);
+
+      return res.json({ message: "Profile updated successfully" });
     }
-
-    const worker = workerResult.recordset[0];
-    const profession = worker.profession.toLowerCase();
-    const skills = worker.skills
-      .toLowerCase()
-      .split(",")
-      .map((s) => s.trim());
-
-    // Get all open requests
-    const requestsResult = await pool.request().query(`
-        SELECT * FROM service_request WHERE status = 'open'
-      `);
-
-    // Filter requests that match profession or skills
-    const matchingRequests = requestsResult.recordset.filter((request) => {
-      const serviceType = request.service_type.toLowerCase();
-      return (
-        serviceType.includes(profession) ||
-        skills.some((skill) => serviceType.includes(skill))
-      );
-    });
-
-    res.json(matchingRequests);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-exports.placeBid = async (req, res) => {
-  console.log(req.body);
-  try {
-    console.log(req.body);
-    const worker_id = req.params.id;
-    const { request_id, bid_amount, bid_date, bid_time, status } = req.body;
-
-    const pool = await poolPromise;
-
-    await pool
-      .request()
-      .input("request_id", request_id)
-      .input("worker_id", worker_id)
-      .input("bid_amount", bid_amount)
-      .input("bid_date", bid_date)
-      .input("bid_time", bid_time)
-      .input("status", status).query(`
-        INSERT INTO bid (request_id, worker_id, bid_amount, bid_date, bid_time, status)
-        VALUES (@request_id, @worker_id, @bid_amount, @bid_date, @bid_time, @status)
-      `);
-
-    res.json({ success: true, message: "Bid placed successfully" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-exports.cancelBid = async (req, res) => {
-  try {
-    const bidId = req.params.id;
-
-    const pool = await poolPromise;
-
-    // First check if bid exists and is still pending
-    const check = await pool.request().input("bidId", bidId).query(`
-        SELECT status 
-        FROM bid 
-        WHERE id = @bidId
-      `);
-
-    if (check.recordset.length === 0) {
-      return res.status(404).json({ message: "Bid not found" });
-    }
-
-    if (check.recordset[0].status !== "pending") {
-      return res.status(400).json({
-        message: "Only pending bids can be cancelled",
-      });
-    }
-
-    await pool.request().input("bidId", bidId).query(`
-        DELETE FROM bid
-        WHERE id = @bidId
-      `);
-
-    return res.json({ message: "Bid cancelled successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-};
-
-exports.updateJobStatus = async (req, res) => {
-  try {
-    const jobId = req.params.id;
-    const { status } = req.body;
-
-    const pool = await poolPromise;
 
     await pool.request()
-      .input('jobId', jobId)
-      .input('status', status)
+      .input('user_id', user_id)
+      .input('profession', profession)
+      .input('skills', skills)
+      .input('experience_years', experience_years)
       .query(`
-        UPDATE job
-        SET status = @status
-        WHERE id = @jobId
+        INSERT INTO worker (user_id, profession, skills, experience_years)
+        VALUES (@user_id, @profession, @skills, @experience_years)
       `);
 
-    res.json({ message: "Status updated" });
+    res.json({ message: "Profile created successfully" });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: err.message });
   }
 };
