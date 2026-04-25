@@ -202,9 +202,11 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     if (currentIndex == steps.length - 1) return;
 
     String nextStatus = steps[currentIndex + 1];
+    print("Updating job ${widget.job['id']} to $nextStatus");
 
     try {
       await ApiService.updateJobStatus(widget.job['id'], nextStatus);
+      print("Update successful");
 
       setState(() {
         currentStatus = nextStatus;
@@ -214,6 +216,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         SnackBar(content: Text("Status updated to ${labels[nextStatus]}")),
       );
     } catch (e) {
+      print("Failed to update status: $e");
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Failed to update status")));

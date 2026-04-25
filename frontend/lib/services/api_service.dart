@@ -104,7 +104,7 @@ class ApiService {
 
   static Future<void> updateJobStatus(int jobId, String status) async {
     final response = await http.put(
-      Uri.parse("$baseUrl/job/$jobId/status"),
+      Uri.parse("$baseUrl/worker/job/$jobId/status"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"status": status}),
     );
