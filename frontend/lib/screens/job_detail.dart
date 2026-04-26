@@ -4,8 +4,13 @@ import '/widgets/appbar.dart';
 
 class JobDetailsScreen extends StatefulWidget {
   final Map job;
+  final int workerId;
 
-  const JobDetailsScreen({super.key, required this.job});
+  const JobDetailsScreen({
+    super.key,
+    required this.job,
+    required this.workerId,
+  });
 
   @override
   State<JobDetailsScreen> createState() => _JobDetailsScreenState();
@@ -138,7 +143,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     );
   }
 
-  // ✅ Timeline UI
   Widget buildTimeline() {
     int currentIndex = steps.indexOf(currentStatus);
 
@@ -199,14 +203,16 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   void updateStatus() async {
     int currentIndex = steps.indexOf(currentStatus);
 
-    if (currentIndex == steps.length - 1) return;
+    if (currentStatus == "completed") {
+      showReviewDialog(widget.workerId, widget.job['client_id']);
+      return;
+    }
 
     String nextStatus = steps[currentIndex + 1];
     print("Updating job ${widget.job['id']} to $nextStatus");
 
     try {
       await ApiService.updateJobStatus(widget.job['id'], nextStatus);
-      print("Update successful");
 
       setState(() {
         currentStatus = nextStatus;
@@ -215,11 +221,93 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Status updated to ${labels[nextStatus]}")),
       );
+
+      if (nextStatus == "completed") {
+        showReviewDialog(widget.workerId, widget.job['client_id']);
+      }
     } catch (e) {
-      print("Failed to update status: $e");
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Failed to update status")));
     }
+  }
+
+  void showReviewDialog(int reviewerId, int revieweeId) {
+    final reviewController = TextEditingController();
+    double rating = 3;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Rate Client"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Give a rating"),
+
+                  const SizedBox(height: 10),
+
+                  Slider(
+                    value: rating,
+                    min: 1,
+                    max: 5,
+                    divisions: 4,
+                    label: rating.toString(),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        rating = value;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  TextField(
+                    controller: reviewController,
+                    decoration: const InputDecoration(
+                      labelText: "Write a review",
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      await ApiService.submitReview(
+                        reviewerId: reviewerId,
+                        revieweeId: revieweeId,
+                        rating: rating.toInt(),
+                        comment: reviewController.text,
+                      );
+
+                      Navigator.pop(context);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Review submitted")),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Failed to submit review"),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text("Submit"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }

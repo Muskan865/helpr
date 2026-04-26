@@ -4,15 +4,18 @@ const cors = require('cors');
 const workerRoutes = require('./routes/workerRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const requesterRoutes = require('./routes/requesterRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const profileCompletionRoutes = require('./routes/profileCompletionRoutes');
 
 const app = express();
 
-// logger first
+// Logger middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url} - Origin: ${req.headers.origin}`);
   next();
 });
 
+// CORS 
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -21,6 +24,9 @@ app.use(cors({
 
 app.use(express.json());
 
+// Routes
+app.use('/api/profile', profileRoutes);
+app.use('/api/profile-completion', profileCompletionRoutes);
 app.use('/api/worker', workerRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/requester', requesterRoutes);

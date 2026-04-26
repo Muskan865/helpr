@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
 import '../screens/chat_list_screen.dart';
+import '../screens/worker_ratings_screen.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-  final int userId;           //added
-  final bool isRequester;     //added
+
+  // requester side
+  final int? userId;
+  final bool isRequester;
+
+  // worker side
+  final int? workerId;
+  final Map<String, dynamic>? profile;
 
   const CustomAppBar({
-  super.key,
-  this.title = "Helpr",
-  this.userId = 0,           // default value
-  this.isRequester = false,  // default value
-});
+    super.key,
+    this.title = "Helpr",
+    this.userId,
+    this.isRequester = false,
+    this.workerId,
+    this.profile,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,34 +32,82 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.more_horiz),
           onSelected: (value) {
             switch (value) {
-              case 'profile':
-                print("Go to profile");
+              // ================= WORKER FLOW =================
+              case 'worker_profile':
+                if (workerId != null) {
+                  Navigator.pushNamed(
+                    context,
+                    '/workerProfile',
+                    arguments: {'userId': workerId},
+                  );
+                }
                 break;
-              case 'ratings':
-                print("View ratings");
-                break;
-              case 'chat':
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatListScreen(
-                      userId: userId,           // 
-                      isRequester: isRequester, // 
+
+              case 'worker_ratings':
+                if (workerId != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => WorkerRatingsScreen(
+                        workerId: workerId!,
+                        avgRating: (profile?['avg_rating'] ?? 0).toDouble(),
+                        workerName: profile?['full_name'] ?? '',
+                      ),
                     ),
-                  ),
-                );
+                  );
+                }
                 break;
+
+              // ================= REQUESTER FLOW =================
+              case 'chat':
+                if (userId != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatListScreen(
+                        userId: userId!,
+                        isRequester: isRequester,
+                      ),
+                    ),
+                  );
+                }
+                break;
+
+              // ================= COMMON =================
               case 'logout':
-                print("Logout");
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (route) => false,
+                );
                 break;
             }
           },
-          itemBuilder: (context) => const [
-            PopupMenuItem(value: 'profile', child: Text("Profile")),
-            PopupMenuItem(value: 'ratings', child: Text("Ratings")),
-            PopupMenuItem(value: 'chat', child: Text("Chat")),
-            PopupMenuItem(value: 'logout', child: Text("Logout")),
-          ],
+          itemBuilder: (context) {
+            if (workerId != null) {
+              // Worker menu
+              return const [
+                PopupMenuItem(
+                  value: 'worker_profile',
+                  child: Text("Profile"),
+                ),
+                PopupMenuItem(
+                  value: 'worker_ratings',
+                  child: Text("View Ratings"),
+                ),
+                PopupMenuItem(
+                  value: 'logout',
+                  child: Text("Logout"),
+                ),
+              ];
+            } else {
+              // Requester menu
+              return const [
+                PopupMenuItem(value: 'chat', child: Text("Chat")),
+                PopupMenuItem(value: 'logout', child: Text("Logout")),
+              ];
+            }
+          },
         ),
       ],
     );
