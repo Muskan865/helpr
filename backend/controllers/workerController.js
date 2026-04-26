@@ -1,73 +1,58 @@
 const { poolPromise } = require("../config/db");
 
+// helper to get worker.id from user_id
+async function getWorkerId(pool, userId) {
+  const workerRow = await pool.request()
+    .input("userId", userId)
+    .query(`SELECT id FROM worker WHERE user_id = @userId`);
+  if (workerRow.recordset.length === 0) throw new Error("Worker not found");
+  return workerRow.recordset[0].id;
+}
 
 // ===================== GET WORKER JOBS =====================
 exports.getWorkerJobs = async (req, res) => {
   try {
-    const workerId = req.params.id;
+    const userId = req.params.id;
     const pool = await poolPromise;
+    console.log("userId:", userId); // ✅ add
+    const workerId = await getWorkerId(pool, userId); // ✅
+    console.log("workerId:", workerId); 
 
     const result = await pool.request()
       .input("workerId", workerId)
       .query(`
-        SELECT 
-          j.*, 
-          sr.service_type, 
-          sr.description, 
-          sr.location, 
-          sr.date, 
-          sr.time,
-          u.full_name AS client_name,
-          u.id AS client_id,
-          b.bid_amount
-
+        SELECT j.*, sr.service_type, sr.description, sr.location, 
+               sr.date, sr.time, u.full_name AS client_name,
+               u.id AS client_id, b.bid_amount
         FROM job j
-
-        JOIN service_request sr 
-          ON j.request_id = sr.id
-
-        JOIN users u 
-          ON sr.requester_id = u.id  
-
-        JOIN bid b 
-          ON b.request_id = j.request_id 
-          AND b.worker_id = j.worker_id
-
+        JOIN service_request sr ON j.request_id = sr.id
+        JOIN users u ON sr.requester_id = u.id
+        JOIN bid b ON b.request_id = j.request_id AND b.worker_id = j.worker_id
         WHERE j.worker_id = @workerId
       `);
 
     res.json(result.recordset);
   } catch (err) {
+    console.error("getWorkerJobs error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
 
-
 // ===================== GET WORKER BIDS =====================
 exports.getWorkerBids = async (req, res) => {
   try {
-    const workerId = req.params.id;
+    const userId = req.params.id;
     const pool = await poolPromise;
+    const workerId = await getWorkerId(pool, userId); // ✅
 
-    const result = await pool.request().input("workerId", workerId).query(`
-        SELECT 
-          b.id AS bid_id,
-          b.request_id,
-          b.worker_id,
-          b.bid_amount,
-          b.status AS bid_status,
-
-          r.requester_id,
-          r.service_type,
-          r.description,
-          r.date,
-          r.time,
-          r.location
-
+    const result = await pool.request()
+      .input("workerId", workerId)
+      .query(`
+        SELECT b.id AS bid_id, b.request_id, b.worker_id, b.bid_amount,
+               b.status AS bid_status, r.requester_id, r.service_type,
+               r.description, r.date, r.time, r.location
         FROM bid b
-        JOIN service_request r 
-          ON b.request_id = r.id
-
+        JOIN service_request r ON b.request_id = r.id
         WHERE b.worker_id = @workerId
         AND b.status = 'pending'
       `);
@@ -78,20 +63,19 @@ exports.getWorkerBids = async (req, res) => {
   }
 };
 
-
 // ===================== GET WORKER PROFILE =====================
 exports.getWorkerProfile = async (req, res) => {
   try {
-    const workerId = req.params.id;
+    const userId = req.params.id;
     const pool = await poolPromise;
 
     const result = await pool.request()
-      .input("workerId", workerId)
+      .input("userId", userId)
       .query(`
         SELECT u.full_name, u.avg_rating, w.profession, w.skills, w.experience_years
         FROM worker w
         JOIN users u ON w.user_id = u.id
-        WHERE w.user_id = @workerId
+        WHERE w.user_id = @userId
       `);
 
     if (result.recordset.length === 0) {
@@ -104,17 +88,14 @@ exports.getWorkerProfile = async (req, res) => {
   }
 };
 
-
 // ===================== GET ALL REQUESTS =====================
 exports.getAllRequests = async (req, res) => {
   try {
     const pool = await poolPromise;
 
     const result = await pool.request().query(`
-        SELECT *
-        FROM service_request r
-        WHERE r.status = 'open'
-      `);
+      SELECT * FROM service_request r WHERE r.status = 'open'
+    `);
 
     res.json(result.recordset);
   } catch (err) {
@@ -122,10 +103,12 @@ exports.getAllRequests = async (req, res) => {
   }
 };
 
+// ===================== GET MATCHING REQUESTS =====================
 exports.getMatchingRequests = async (req, res) => {
   try {
-    const workerId = req.params.id;
+    const userId = req.params.id;
     const pool = await poolPromise;
+    const workerId = await getWorkerId(pool, userId); // ✅
 
     const workerResult = await pool.request()
       .input("workerId", workerId)
@@ -166,7 +149,6 @@ exports.getMatchingRequests = async (req, res) => {
 
     res.json(matchingRequests);
   } catch (err) {
-    console.error("getMatchingRequests error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
@@ -178,60 +160,57 @@ exports.createWorkerProfile = async (req, res) => {
     const pool = await poolPromise;
 
     const existing = await pool.request()
-      .input('user_id', user_id)
+      .input("user_id", user_id)
       .query(`SELECT * FROM worker WHERE user_id = @user_id`);
 
     if (existing.recordset.length > 0) {
       await pool.request()
-        .input('user_id', user_id)
-        .input('profession', profession)
-        .input('skills', skills)
-        .input('experience_years', experience_years)
+        .input("user_id", user_id)
+        .input("profession", profession)
+        .input("skills", skills)
+        .input("experience_years", experience_years)
         .query(`
           UPDATE worker
-          SET profession = @profession,
-              skills = @skills,
+          SET profession = @profession, skills = @skills,
               experience_years = @experience_years
           WHERE user_id = @user_id
         `);
-
       return res.json({ message: "Profile updated successfully" });
     }
 
     await pool.request()
-      .input('user_id', user_id)
-      .input('profession', profession)
-      .input('skills', skills)
-      .input('experience_years', experience_years)
+      .input("user_id", user_id)
+      .input("profession", profession)
+      .input("skills", skills)
+      .input("experience_years", experience_years)
       .query(`
         INSERT INTO worker (user_id, profession, skills, experience_years)
         VALUES (@user_id, @profession, @skills, @experience_years)
       `);
 
     res.json({ message: "Profile created successfully" });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// ===================== PLACE BID =====================
 exports.placeBid = async (req, res) => {
-  console.log(req.body);
   try {
-    console.log(req.body);
-    const worker_id = req.params.id;
+    const userId = req.params.id;
+    const pool = await poolPromise;
+    const workerId = await getWorkerId(pool, userId); // ✅
+
     const { request_id, bid_amount, bid_date, bid_time, status } = req.body;
 
-    const pool = await poolPromise;
-
-    await pool
-      .request()
+    await pool.request()
       .input("request_id", request_id)
-      .input("worker_id", worker_id)
+      .input("worker_id", workerId) // ✅ was worker_id (undefined), now workerId
       .input("bid_amount", bid_amount)
       .input("bid_date", bid_date)
       .input("bid_time", bid_time)
-      .input("status", status).query(`
+      .input("status", status)
+      .query(`
         INSERT INTO bid (request_id, worker_id, bid_amount, bid_date, bid_time, status)
         VALUES (@request_id, @worker_id, @bid_amount, @bid_date, @bid_time, @status)
       `);
@@ -242,75 +221,63 @@ exports.placeBid = async (req, res) => {
   }
 };
 
+// ===================== CANCEL BID =====================
 exports.cancelBid = async (req, res) => {
   try {
     const bidId = req.params.id;
-
     const pool = await poolPromise;
 
-    // First check if bid exists and is still pending
-    const check = await pool.request().input("bidId", bidId).query(`
-        SELECT status 
-        FROM bid 
-        WHERE id = @bidId
-      `);
+    const check = await pool.request()
+      .input("bidId", bidId)
+      .query(`SELECT status FROM bid WHERE id = @bidId`);
 
     if (check.recordset.length === 0) {
       return res.status(404).json({ message: "Bid not found" });
     }
 
     if (check.recordset[0].status !== "pending") {
-      return res.status(400).json({
-        message: "Only pending bids can be cancelled",
-      });
+      return res.status(400).json({ message: "Only pending bids can be cancelled" });
     }
 
-    await pool.request().input("bidId", bidId).query(`
-        DELETE FROM bid
-        WHERE id = @bidId
-      `);
+    await pool.request()
+      .input("bidId", bidId)
+      .query(`DELETE FROM bid WHERE id = @bidId`);
 
     return res.json({ message: "Bid cancelled successfully" });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 };
 
+// ===================== UPDATE JOB STATUS =====================
 exports.updateJobStatus = async (req, res) => {
   try {
     const jobId = req.params.id;
     const { status } = req.body;
-
     const pool = await poolPromise;
 
     await pool.request()
-      .input('jobId', jobId)
-      .input('status', status)
-      .query(`
-        UPDATE job
-        SET status = @status
-        WHERE id = @jobId
-      `);
+      .input("jobId", jobId)
+      .input("status", status)
+      .query(`UPDATE job SET status = @status WHERE id = @jobId`);
 
     res.json({ message: "Status updated" });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 };
 
+// ===================== SUBMIT REVIEW =====================
 exports.submitReview = async (req, res) => {
   try {
     const { reviewer_id, reviewee_id, rating, comment } = req.body;
-    console.log("Review data received:", req.body);
     const pool = await poolPromise;
 
     await pool.request()
-      .input('reviewer_id', reviewer_id)
-      .input('reviewee_id', reviewee_id)
-      .input('rating', rating)
-      .input('comment', comment)
+      .input("reviewer_id", reviewer_id)
+      .input("reviewee_id", reviewee_id)
+      .input("rating", rating)
+      .input("comment", comment)
       .query(`
         INSERT INTO rating_review (reviewer_id, reviewee_id, rating, comment)
         VALUES (@reviewer_id, @reviewee_id, @rating, @comment)
@@ -318,27 +285,23 @@ exports.submitReview = async (req, res) => {
 
     res.json({ message: "Review submitted" });
   } catch (err) {
-    console.error("submitReview FULL ERROR:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
 
+// ===================== GET WORKER RATINGS =====================
 exports.getWorkerRatings = async (req, res) => {
   try {
-    const workerId = req.params.id;
+    const userId = req.params.id;
     const pool = await poolPromise;
 
     const result = await pool.request()
-      .input('workerId', workerId)
+      .input("userId", userId)
       .query(`
-        SELECT 
-          rr.id,
-          rr.rating,
-          rr.comment,
-          u.full_name AS reviewer_name
+        SELECT rr.id, rr.rating, rr.comment, u.full_name AS reviewer_name
         FROM rating_review rr
         JOIN users u ON rr.reviewer_id = u.id
-        WHERE rr.reviewee_id = @workerId
+        WHERE rr.reviewee_id = @userId
         ORDER BY rr.id DESC
       `);
 

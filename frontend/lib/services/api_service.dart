@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.1.104:3000/api";
+  static const String baseUrl = "http://192.168.1.11:3000";
   // static const String baseUrl = "http://localhost:3000/api";
   static const String apiBase = "$baseUrl/api";
 
@@ -274,7 +274,7 @@ static Future<void> cancelBid(int bidId) async {
   // Get Requester ongoing jobs (for chat list)
 static Future<List<dynamic>> getRequesterJobs(int requesterId) async {
   final response = await http.get(
-    Uri.parse("$baseUrl/requester/$requesterId/jobs"),
+    Uri.parse("$apiBase/requester/$requesterId/jobs"),
   );
 
   if (response.statusCode == 200) {
