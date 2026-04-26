@@ -5,6 +5,7 @@ import 'browse_bids.dart';
 import 'job_history.dart';
 import 'job_detail.dart';
 import '/widgets/appbar.dart';
+import 'worker_ratings_screen.dart';
 
 class WorkerDashboard extends StatefulWidget {
   final int? userId;
@@ -45,13 +46,13 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     }
 
     try {
-      ongoingJobs = (await ApiService.getWorkerJobs(workerId))
-          .where((job) => job['status'] == "arriving")
-          .toList();
+      ongoingJobs = (await ApiService.getWorkerJobs(
+        workerId,
+      )).where((job) => job['status'] != "completed").toList();
 
-      pastJobs = (await ApiService.getWorkerJobs(workerId))
-          .where((job) => job['status'] == "completed")
-          .toList();
+      pastJobs = (await ApiService.getWorkerJobs(
+        workerId,
+      )).where((job) => job['status'] == "completed").toList();
     } catch (e) {
       setState(() {
         error = "Failed at jobs";
@@ -85,50 +86,15 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (error != null) {
-      return Scaffold(
-        body: Center(child: Text(error!)),
-      );
+      return Scaffold(body: Center(child: Text(error!)));
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Helpr"),
-        centerTitle: true,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_horiz),
-            onSelected: (value) {
-              switch (value) {
-                case 'profile':
-                  Navigator.pushNamed(
-                    context,
-                    '/workerProfile',
-                    arguments: {'userId': workerId},
-                  );
-                  break;
-
-                case 'logout':
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/login',
-                    (route) => false,
-                  );
-                  break;
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'profile', child: Text("Profile")),
-              PopupMenuItem(value: 'logout', child: Text("Logout")),
-            ],
-          ),
-        ],
-      ),
+      appBar: CustomAppBar(workerId: workerId, profile: profile),
 
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -136,10 +102,7 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Welcome back,",
-                style: TextStyle(color: Colors.grey),
-              ),
+              const Text("Welcome back,", style: TextStyle(color: Colors.grey)),
 
               const SizedBox(height: 5),
 
@@ -297,115 +260,113 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
   }
 
   Widget requestItem(
-  String serviceType,
-  String description,
-  String location,
-  String date,
-  String price, 
-) {
-  return Column(
-    children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // LEFT SIDE
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    serviceType,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
+    String serviceType,
+    String description,
+    String location,
+    String date,
+    String price,
+  ) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // LEFT SIDE
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      serviceType,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    location, // or description if you prefer
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 13,
+                    const SizedBox(height: 4),
+                    Text(
+                      location, // or description if you prefer
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            Text(
-              price,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+              Text(
+                price,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
+            ],
+          ),
+        ),
+
+        // Divider like in first image
+        const Divider(height: 1, color: Colors.grey),
+      ],
+    );
+  }
+
+  // Job Card Widget
+  Widget jobCard(String title, String subtitle, Map job) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                JobDetailsScreen(job: job, workerId: workerId),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color.fromARGB(255, 109, 109, 109)),
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                // Container(
+                //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                //   decoration: BoxDecoration(
+                //     color: Colors.grey[300],
+                //     borderRadius: BorderRadius.circular(20),
+                //   ),
+                //   // child: Text(status, style: const TextStyle(fontSize: 12)),
+                // ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Row(
+              children: [
+                Text(subtitle, style: const TextStyle(color: Colors.grey)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: 0.5,
+              backgroundColor: Colors.grey[300],
+              color: Colors.black,
             ),
           ],
         ),
       ),
-
-      // Divider like in first image
-      const Divider(height: 1, color: Colors.grey),
-    ],
-  );
-}
-
-  // Job Card Widget
-  Widget jobCard(String title, String subtitle, Map job) {
-  return InkWell(
-    borderRadius: BorderRadius.circular(22),
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => JobDetailsScreen(job: job, workerId: workerId),
-        ),
-      );
-    },
-    child: Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color.fromARGB(255, 109, 109, 109)),
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              // Container(
-              //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              //   decoration: BoxDecoration(
-              //     color: Colors.grey[300],
-              //     borderRadius: BorderRadius.circular(20),
-              //   ),
-              //   // child: Text(status, style: const TextStyle(fontSize: 12)),
-              // ),
-            ],
-          ),
-          const SizedBox(height: 5),
-          Row(
-            children: [
-              Text(subtitle, style: const TextStyle(color: Colors.grey)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: 0.5,
-            backgroundColor: Colors.grey[300],
-            color: Colors.black,
-          ),
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
 }

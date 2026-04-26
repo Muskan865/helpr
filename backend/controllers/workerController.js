@@ -322,3 +322,28 @@ exports.submitReview = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getWorkerRatings = async (req, res) => {
+  try {
+    const workerId = req.params.id;
+    const pool = await poolPromise;
+
+    const result = await pool.request()
+      .input('workerId', workerId)
+      .query(`
+        SELECT 
+          rr.id,
+          rr.rating,
+          rr.comment,
+          u.full_name AS reviewer_name
+        FROM rating_review rr
+        JOIN users u ON rr.reviewer_id = u.id
+        WHERE rr.reviewee_id = @workerId
+        ORDER BY rr.id DESC
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

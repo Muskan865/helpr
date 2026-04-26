@@ -110,7 +110,7 @@ class ApiService {
     required String todaytime,
   }) async {
     final response = await http.post(
-      Uri.parse("$baseUrl/worker/$workerId/place-bid"),
+      Uri.parse("$apiBase/worker/$workerId/place-bid"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "request_id": requestId,
@@ -252,7 +252,7 @@ class ApiService {
 }
 
 static Future<void> cancelBid(int bidId) async {
-    final response = await http.delete(Uri.parse("$baseUrl/worker/bid/$bidId"));
+    final response = await http.delete(Uri.parse("$apiBase/worker/bid/$bidId"));
 
     if (response.statusCode != 200) {
       throw Exception("Failed to cancel bid");
@@ -261,7 +261,7 @@ static Future<void> cancelBid(int bidId) async {
 
   static Future<void> updateJobStatus(int jobId, String status) async {
     final response = await http.put(
-      Uri.parse("$baseUrl/worker/job/$jobId/status"),
+      Uri.parse("$apiBase/worker/job/$jobId/status"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"status": status}),
     );
@@ -270,4 +270,14 @@ static Future<void> cancelBid(int bidId) async {
       throw Exception("Failed to update status");
     }
   }
+  static Future<List<dynamic>> getWorkerRatings(int workerId) async {
+  final response = await http.get(
+    Uri.parse("$apiBase/worker/$workerId/ratings"),
+  );
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception("Failed to load ratings");
+  }
+}
 }

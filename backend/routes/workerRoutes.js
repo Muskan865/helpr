@@ -11,7 +11,8 @@ const {
   placeBid,
   cancelBid,
   updateJobStatus,
-  submitReview
+  submitReview,
+  getWorkerRatings
 } = require('../controllers/workerController');
 
 
@@ -25,6 +26,7 @@ router.post('/review', submitReview);
 router.get('/:id/jobs', getWorkerJobs);
 router.get('/:id/bids', getWorkerBids);
 router.get('/:id/profile', getWorkerProfile);
+router.get('/:id/ratings', getWorkerRatings);
 
 
 // ===================== PROFILE =====================
