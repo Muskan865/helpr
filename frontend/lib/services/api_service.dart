@@ -3,7 +3,8 @@ import 'package:http/http.dart' as http;
 
 //"http://10.0.2.2:3000/api"; for phone
 class ApiService {
-  static const String baseUrl = "http://192.168.1.11:3000/api";
+  // static const String baseUrl = "http://192.168.1.104:3000/api";
+  static const String baseUrl = "http://localhost:3000/api";
 
   //Get Worker Jobs
   static Future<List<dynamic>> getWorkerJobs(int workerId) async {
@@ -113,4 +114,16 @@ class ApiService {
       throw Exception("Failed to update status");
     }
   }
+  // Get Requester ongoing jobs (for chat list)
+static Future<List<dynamic>> getRequesterJobs(int requesterId) async {
+  final response = await http.get(
+    Uri.parse("$baseUrl/requester/$requesterId/jobs"),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception("Failed to load requester jobs");
+  }
+}
 }

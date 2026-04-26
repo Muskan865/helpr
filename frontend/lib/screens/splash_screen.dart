@@ -49,6 +49,7 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     // Navigate to SignUp after 2.8s
+    /*
     Future.delayed(const Duration(milliseconds: 2800), () {
       if (mounted) {
         Navigator.pushReplacement(
@@ -57,6 +58,7 @@ class _SplashScreenState extends State<SplashScreen>
         );
       }
     });
+    */
   }
 
   @override

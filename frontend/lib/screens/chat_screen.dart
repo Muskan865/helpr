@@ -42,7 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> fetchMessages() async {
     final res = await http.get(
-      Uri.parse("http://10.0.2.2:3000/api/chat/${widget.jobId}"),
+      Uri.parse("http://localhost:3000/api/chat/${widget.jobId}"),  // ✅ changed
     );
 
     if (res.statusCode == 200) {
@@ -56,7 +56,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (controller.text.isEmpty) return;
 
     await http.post(
-      Uri.parse("http://10.0.2.2:3000/api/chat/send"),
+      Uri.parse("http://localhost:3000/api/chat/send"),  // ✅ changed
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "jobId": widget.jobId,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'chat_list_screen.dart';          
 
 class RequesterDashboard extends StatelessWidget {
   const RequesterDashboard({super.key});
@@ -30,7 +31,7 @@ class RequesterDashboard extends StatelessWidget {
         ),
         centerTitle: true,
         actions: [
-          // chat icon
+          // Notification icon
           Stack(
             alignment: Alignment.center,
             children: [
@@ -53,17 +54,25 @@ class RequesterDashboard extends StatelessWidget {
               ),
             ],
           ),
-        
-      
 
-          // Notification bell 
+          
           Stack(
             alignment: Alignment.center,
             children: [
               IconButton(
                 icon: const Icon(Icons.chat_bubble_outline,
                     color: Colors.black87),
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChatListScreen(
+                        userId: 5,           // requester id that actually has ongoing jobs
+                        isRequester: true,
+                      ),
+                    ),
+                  );
+                },
               ),
               Positioned(
                 right: 10,
@@ -82,14 +91,12 @@ class RequesterDashboard extends StatelessWidget {
         ],
       ),
 
-
       drawer: Drawer(
         backgroundColor: Colors.white,
         child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Profile header
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -134,9 +141,6 @@ class RequesterDashboard extends StatelessWidget {
               const Divider(height: 1),
               const SizedBox(height: 10),
 
-              // _drawerItem(Icons.notifications_outlined, "Notifications",
-              //     badge: true),
-              // _drawerItem(Icons.chat_bubble_outline, "Messages", badge: true),
               _drawerItem(Icons.person_2_outlined, "Profile"),
               _drawerItem(Icons.history, "History"),
               _drawerItem(Icons.edit_note_outlined, "Post a Request"),
@@ -157,39 +161,38 @@ class RequesterDashboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Good Morning,",
-                        style: GoogleFonts.nunito(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Good Morning,",
+                      style: GoogleFonts.nunito(
+                        color: Colors.grey,
+                        fontSize: 14,
                       ),
-                      Text(
-                        "Sara Rahman",
-                        style: GoogleFonts.nunito(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                        ),
+                    ),
+                    Text(
+                      "Sara Rahman",
+                      style: GoogleFonts.nunito(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
                       ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.edit_note_outlined,
-                        color: Colors.black87, size: 28),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_note_outlined,
+                      color: Colors.black87, size: 28),
+                  onPressed: () {},
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
 
-            // Received Bids Card
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -233,13 +236,8 @@ class RequesterDashboard extends StatelessWidget {
               ),
             ),
 
-           
-        
-      
-
             const SizedBox(height: 14),
 
-            // Browse Active Requests Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -262,7 +260,6 @@ class RequesterDashboard extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // Section label
             Text(
               "ACTIVE JOBS",
               style: GoogleFonts.nunito(
@@ -275,7 +272,6 @@ class RequesterDashboard extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            // Job cards
             Expanded(
               child: ListView(
                 children: const [
@@ -298,7 +294,6 @@ class RequesterDashboard extends StatelessWidget {
               ),
             ),
 
-            // All Active Jobs Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -318,30 +313,6 @@ class RequesterDashboard extends StatelessWidget {
                 ),
               ),
             ),
-
-  //           const SizedBox(height: 12),
-
-  //           // History Button
-  //           SizedBox(
-  //             width: double.infinity,
-  //             child: ElevatedButton(
-  //               onPressed: () {},
-  //               style: ElevatedButton.styleFrom(
-  //                 backgroundColor: Colors.blue,
-  //                 padding: const EdgeInsets.symmetric(vertical: 14),
-  //                 shape: RoundedRectangleBorder(
-  //                   borderRadius: BorderRadius.circular(10),
-  //                 ),
-  //               ),
-  //               child: Text(
-  //                 "History",
-  //                 style: GoogleFonts.nunito(
-  //                   color: Colors.white,
-  //                   fontWeight: FontWeight.w700,
-  //                 ),
-  //               ),
-  //             ),
-  //           ),
 
             const SizedBox(height: 6),
           ],
@@ -437,8 +408,7 @@ class RequestCard extends StatelessWidget {
               ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(20),

@@ -9,9 +9,10 @@ exports.getMessages = async (req, res) => {
     const result = await pool.request()
       .input("jobId", sql.Int, jobId)
       .query(`
-        SELECT * FROM message
+        SELECT id, job_id, sender_id, content, sent_at
+        FROM message
         WHERE job_id = @jobId
-        ORDER BY message_id ASC
+        ORDER BY id ASC
       `);
 
     res.json(result.recordset);
@@ -36,7 +37,7 @@ exports.sendMessage = async (req, res) => {
         VALUES (@jobId, @senderId, @content)
       `);
 
-    res.send("Message sent");
+    res.json({ success: true, message: "Message sent" });
   } catch (err) {
     console.error(err);
     res.status(500).send("Error sending message");

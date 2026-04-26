@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import '../screens/chat_list_screen.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
+  final int userId;           //added
+  final bool isRequester;     //added
 
-  const CustomAppBar({super.key, this.title = "Helpr"});
+  const CustomAppBar({
+  super.key,
+  this.title = "Helpr",
+  this.userId = 0,           // default value
+  this.isRequester = false,  // default value
+});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +30,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 print("View ratings");
                 break;
               case 'chat':
-                print("Open chat");
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatListScreen(
+                      userId: userId,           // 
+                      isRequester: isRequester, // 
+                    ),
+                  ),
+                );
                 break;
               case 'logout':
                 print("Logout");
