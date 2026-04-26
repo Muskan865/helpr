@@ -213,6 +213,16 @@ class _RequesterDashboardState extends State<RequesterDashboard> {
                   ),
                 );
               }),
+               _drawerItem(Icons.star_outline, "My Ratings", onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RequesterRatingsScreen(
+                        requesterId: requesterId),
+                  ),
+                );
+              }),
               _drawerItem(Icons.edit_note_outlined, "Post a Request",
                   onTap: () {
                 Navigator.push(
