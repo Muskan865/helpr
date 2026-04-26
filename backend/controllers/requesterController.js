@@ -11,15 +11,18 @@ exports.getRequesterJobs = async (req, res) => {
         SELECT 
           j.id          AS job_id,
           j.status      AS job_status,
-          j.worker_id,
+          w.user_id     AS worker_id,
+          u.full_name   AS worker_name,
           sr.service_type,
           sr.description,
           sr.date,
           sr.location
         FROM job j
         JOIN service_request sr ON j.request_id = sr.id
+        JOIN worker w ON (j.worker_id = w.user_id OR j.worker_id = w.id)
+        JOIN users u ON w.user_id = u.id
         WHERE sr.requester_id = @requesterId
-          AND j.status = 'ongoing'
+          AND LOWER(j.status) <> 'completed'
       `);
 
     res.json(result.recordset);
@@ -79,10 +82,10 @@ exports.getRequesterBids = async (req, res) => {
           u.full_name AS worker_name,
           u.avg_rating AS worker_rating,
           w.profession,
-          (SELECT COUNT(*) FROM job j WHERE j.worker_id = w.user_id AND j.status = 'completed') AS past_jobs
+          (SELECT COUNT(*) FROM job j WHERE j.worker_id = w.user_id AND LOWER(j.status) = 'completed') AS past_jobs
         FROM bid b
         JOIN service_request sr ON b.request_id = sr.id
-        JOIN worker w ON b.worker_id = w.user_id
+        JOIN worker w ON (b.worker_id = w.user_id OR b.worker_id = w.id)
         JOIN users u ON w.user_id = u.id
         WHERE sr.requester_id = @requesterId
           AND sr.status = 'open'
@@ -111,6 +114,37 @@ exports.acceptBid = async (req, res) => {
     }
 
     const bid = bidResult.recordset[0];
+
+    if (bid.status !== 'pending') {
+      return res.status(400).json({ message: "Only pending bids can be accepted" });
+    }
+
+    const requestCheck = await pool.request()
+      .input("requestId", bid.request_id)
+      .query(`
+        SELECT id, status
+        FROM service_request
+        WHERE id = @requestId
+      `);
+
+    if (requestCheck.recordset.length === 0) {
+      return res.status(404).json({ message: "Service request not found" });
+    }
+
+    if (requestCheck.recordset[0].status !== 'open') {
+      return res.status(400).json({ message: "This service request is already closed" });
+    }
+
+    // Get worker user_id from worker table
+    const workerResult = await pool.request()
+      .input("workerId", bid.worker_id)
+      .query(`SELECT user_id FROM worker WHERE id = @workerId`);
+
+    if (workerResult.recordset.length === 0) {
+      return res.status(404).json({ message: "Worker not found" });
+    }
+
+    const workerUserId = workerResult.recordset[0].user_id;
 
     // Create job with status 'arriving'
     await pool.request()
@@ -141,12 +175,6 @@ exports.acceptBid = async (req, res) => {
       .input("request_id", bid.request_id)
       .query(`UPDATE service_request SET status = 'closed' WHERE id = @request_id`);
 
-    // Notify the worker
-    await pool.request()
-      .input("user_id", bid.worker_id)
-      .input("content", "Your bid was accepted! Head to the job location.")
-      .query(`INSERT INTO notification (user_id, content) VALUES (@user_id, @content)`);
-
     res.json({ message: "Bid accepted, job created" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -165,7 +193,7 @@ exports.getRequesterActiveJobs = async (req, res) => {
         SELECT
           j.id AS job_id,
           j.status,
-          j.worker_id,
+          w.user_id AS worker_id,
           sr.service_type,
           sr.description,
           sr.location,
@@ -178,11 +206,11 @@ exports.getRequesterActiveJobs = async (req, res) => {
           b.bid_amount
         FROM job j
         JOIN service_request sr ON j.request_id = sr.id
-        JOIN worker w ON j.worker_id = w.user_id
+        JOIN worker w ON (j.worker_id = w.user_id OR j.worker_id = w.id)
         JOIN users u ON w.user_id = u.id
-        LEFT JOIN bid b ON b.request_id = sr.id AND b.worker_id = j.worker_id AND b.status = 'accepted'
+        LEFT JOIN bid b ON b.request_id = sr.id AND (b.worker_id = w.user_id OR b.worker_id = w.id) AND b.status = 'accepted'
         WHERE sr.requester_id = @requesterId
-          AND j.status != 'completed'
+          AND LOWER(j.status) != 'completed'
       `);
 
     res.json(result.recordset);
@@ -203,7 +231,7 @@ exports.getRequesterJobHistory = async (req, res) => {
         SELECT
           j.id AS job_id,
           j.status,
-          j.worker_id,
+          w.user_id AS worker_id,
           sr.service_type,
           sr.description,
           sr.location,
@@ -218,12 +246,12 @@ exports.getRequesterJobHistory = async (req, res) => {
           rr.comment AS my_comment
         FROM job j
         JOIN service_request sr ON j.request_id = sr.id
-        JOIN worker w ON j.worker_id = w.user_id
+        JOIN worker w ON (j.worker_id = w.user_id OR j.worker_id = w.id)
         JOIN users u ON w.user_id = u.id
-        LEFT JOIN bid b ON b.request_id = sr.id AND b.worker_id = j.worker_id AND b.status = 'accepted'
-        LEFT JOIN rating_review rr ON rr.reviewee_id = j.worker_id AND rr.reviewer_id = sr.requester_id
+        LEFT JOIN bid b ON b.request_id = sr.id AND (b.worker_id = w.user_id OR b.worker_id = w.id) AND b.status = 'accepted'
+        LEFT JOIN rating_review rr ON rr.reviewee_id = w.user_id AND rr.reviewer_id = sr.requester_id
         WHERE sr.requester_id = @requesterId
-          AND j.status = 'completed'
+          AND LOWER(j.status) = 'completed'
       `);
 
     res.json(result.recordset);
@@ -297,7 +325,7 @@ exports.getWorkerPublicProfile = async (req, res) => {
           w.profession,
           w.skills,
           w.experience_years,
-          (SELECT COUNT(*) FROM job j WHERE j.worker_id = w.user_id AND j.status = 'completed') AS past_jobs
+          (SELECT COUNT(*) FROM job j WHERE j.worker_id = w.user_id AND LOWER(j.status) = 'completed') AS past_jobs
         FROM worker w
         JOIN users u ON w.user_id = u.id
         WHERE w.user_id = @workerId

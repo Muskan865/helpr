@@ -111,7 +111,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to update worker details: $e")),
+          SnackBar(content: Text(ApiService.errorMessage(e))),
         );
       }
     } finally {

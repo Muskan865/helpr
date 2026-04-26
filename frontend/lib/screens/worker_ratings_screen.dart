@@ -280,27 +280,4 @@ class _WorkerRatingsScreenState extends State<WorkerRatingsScreen> {
       }),
     );
   }
-
-  String _formatDate(String raw) {
-    try {
-      final dt = DateTime.parse(raw);
-      const months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      return "${months[dt.month - 1]} ${dt.day}, ${dt.year}";
-    } catch (_) {
-      return '';
-    }
-  }
 }

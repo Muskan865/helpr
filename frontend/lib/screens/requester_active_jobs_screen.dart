@@ -67,7 +67,7 @@ class _RequesterActiveJobsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(),
+      appBar: const CustomAppBar(title: "Active Jobs"),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : error != null

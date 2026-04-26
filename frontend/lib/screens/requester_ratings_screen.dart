@@ -30,7 +30,7 @@ class _RequesterRatingsScreenState extends State<RequesterRatingsScreen> {
       });
     } catch (e) {
       setState(() {
-        error = "Failed to load ratings";
+        error = ApiService.errorMessage(e, fallback: "Couldn't load ratings.");
         isLoading = false;
       });
     }

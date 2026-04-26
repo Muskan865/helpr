@@ -35,29 +35,13 @@ class RequesterJobTrackingScreen extends StatelessWidget {
         job['date'] != null ? DateTime.tryParse(job['date']) : null;
 
     return Scaffold(
-      appBar: const CustomAppBar(),
+      appBar: const CustomAppBar(title: "Track Job"),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Back + title
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back_ios, size: 18),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  "Track Job",
-                  style: TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
 
             // Job info card
             Container(

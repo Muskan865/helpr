@@ -45,7 +45,7 @@ class _RequesterJobHistoryScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(),
+      appBar: const CustomAppBar(title: "Job History"),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : error != null
@@ -118,8 +118,9 @@ class _RequesterJobHistoryScreenState
 
   Widget _jobCard(Map job) {
     final date = job['date'] != null
-        ? DateTime.tryParse(job['date'])
+        ? DateTime.tryParse(job['date']?.toString() ?? '')
         : null;
+    final workerId = job['worker_id'];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -136,7 +137,7 @@ class _RequesterJobHistoryScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                job['service_type'] ?? "",
+                job['service_type']?.toString() ?? "",
                 style: const TextStyle(
                     fontSize: 16, fontWeight: FontWeight.bold),
               ),
@@ -161,7 +162,7 @@ class _RequesterJobHistoryScreenState
             children: [
               const Icon(Icons.location_on, size: 14, color: Colors.grey),
               const SizedBox(width: 4),
-              Text(job['location'] ?? "—",
+              Text(job['location']?.toString() ?? "—",
                   style: const TextStyle(
                       color: Colors.grey, fontSize: 13)),
             ],
@@ -174,7 +175,7 @@ class _RequesterJobHistoryScreenState
               const SizedBox(width: 4),
               Text(
                 date != null
-                    ? "${date.day}/${date.month}/${date.year} • ${job['time'] ?? ''}"
+                    ? "${date.day}/${date.month}/${date.year} • ${job['time']?.toString() ?? ''}"
                     : "—",
                 style:
                     const TextStyle(color: Colors.grey, fontSize: 13),
@@ -185,66 +186,67 @@ class _RequesterJobHistoryScreenState
           const Divider(height: 20),
 
           // Worker row
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => WorkerPublicProfileScreen(
-                    workerId: job['worker_id'],
+          if (workerId != null)
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => WorkerPublicProfileScreen(
+                      workerId: workerId as int,
+                    ),
                   ),
-                ),
-              );
-            },
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Colors.blue.shade100,
-                  child: Text(
-                    (job['worker_name'] ?? "?")[0].toUpperCase(),
-                    style: const TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13),
+                );
+              },
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.blue.shade100,
+                    child: Text(
+                      (job['worker_name']?.toString() ?? "?")[0].toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          job['worker_name']?.toString() ?? "—",
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14),
+                        ),
+                        Text(
+                          job['profession']?.toString() ?? "",
+                          style: const TextStyle(
+                              color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
                     children: [
+                      const Icon(Icons.star,
+                          size: 13, color: Colors.amber),
+                      const SizedBox(width: 3),
                       Text(
-                        job['worker_name'] ?? "—",
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14),
-                      ),
-                      Text(
-                        job['profession'] ?? "",
-                        style: const TextStyle(
-                            color: Colors.grey, fontSize: 12),
+                        "${job['worker_rating']?.toString() ?? '—'}",
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ],
                   ),
-                ),
-                Row(
-                  children: [
-                    const Icon(Icons.star,
-                        size: 13, color: Colors.amber),
-                    const SizedBox(width: 3),
-                    Text(
-                      "${job['worker_rating'] ?? '—'}",
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 6),
-                const Icon(Icons.arrow_forward_ios,
-                    size: 13, color: Colors.grey),
-              ],
+                  const SizedBox(width: 6),
+                  const Icon(Icons.arrow_forward_ios,
+                      size: 13, color: Colors.grey),
+                ],
+              ),
             ),
-          ),
 
           if (job['my_rating'] != null) ...[
             const SizedBox(height: 10),
@@ -280,7 +282,7 @@ class _RequesterJobHistoryScreenState
                             job['my_comment'].toString().isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
-                            job['my_comment'],
+                            job['my_comment'].toString(),
                             style: const TextStyle(
                                 fontSize: 12, color: Colors.grey),
                           ),

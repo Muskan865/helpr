@@ -32,13 +32,13 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
       });
     } catch (e) {
       setState(() {
-        error = "Failed to load bids";
+        error = ApiService.errorMessage(e, fallback: "Couldn't load bids.");
         isLoading = false;
       });
     }
   }
 
-  Future<void> _acceptBid(int bidId, int requestId) async {
+  Future<void> _acceptBid(int bidId) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -75,16 +75,41 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to accept bid. Try again.")),
+          SnackBar(content: Text(ApiService.errorMessage(e))),
         );
       }
+    }
+  }
+
+  String _formatBidDateTime(String? dateStr, String? timeStr) {
+    try {
+      if (dateStr == null || dateStr.isEmpty) return 'Date not available';
+      final date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inMinutes < 1) {
+        return 'Just now';
+      } else if (difference.inMinutes < 60) {
+        return '${difference.inMinutes}m ago';
+      } else if (difference.inHours < 24) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inDays == 1) {
+        return 'Yesterday';
+      } else if (difference.inDays < 7) {
+        return '${difference.inDays}d ago';
+      } else {
+        return '${date.day}/${date.month}/${date.year}';
+      }
+    } catch (_) {
+      return dateStr ?? 'Date not available';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(),
+      appBar: const CustomAppBar(title: "Received Bids"),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : error != null
@@ -118,6 +143,9 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
   }
 
   Widget _bidCard(Map bid) {
+    // Format bid datetime
+    String formattedBidTime = _formatBidDateTime(bid['bid_date'], bid['bid_time']);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -223,7 +251,7 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
                 ),
               ),
               Text(
-                "${bid['bid_date'] ?? ''} ${bid['bid_time'] ?? ''}",
+                formattedBidTime,
                 style:
                     const TextStyle(color: Colors.grey, fontSize: 12),
               ),
@@ -260,8 +288,7 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () =>
-                      _acceptBid(bid['bid_id'], bid['request_id']),
+                  onPressed: () => _acceptBid(bid['bid_id']),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,

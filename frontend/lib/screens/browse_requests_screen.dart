@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '/widgets/appbar.dart';
 
 class BrowseRequestsScreen extends StatefulWidget {
   final int workerId;
   final List<dynamic> serviceRequests;
+
   const BrowseRequestsScreen({
     super.key,
     required this.serviceRequests,
@@ -16,8 +18,6 @@ class BrowseRequestsScreen extends StatefulWidget {
 }
 
 class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
-  bool isLoading = true;
-  String? error;
   late List<dynamic> requests;
 
   @override
@@ -29,87 +29,78 @@ class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(),
-      body: Padding(
+      appBar: const CustomAppBar(title: "Matching Requests"),
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            const Text(
-              "Nearby Requests",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-
-            if (requests.isEmpty)
-              const Text("No nearby requests")
-            else
-              ...requests.map((request) => requestCard(request)),
-          ],
-        ),
+        children: [
+          if (requests.isEmpty)
+            _emptyCard("No matching requests right now.")
+          else
+            ...requests.map((request) => _requestCard(request)),
+        ],
       ),
     );
   }
 
-  Widget requestCard(Map request) {
+  Widget _requestCard(Map request) {
+    final parsedDate = request['date'] != null
+        ? DateTime.tryParse(request['date'].toString())
+        : null;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey, width: 1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             request['service_type'] ?? "",
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
-
           Text(
             request['description'] ?? "",
-            style: const TextStyle(color: Colors.grey),
+            style: GoogleFonts.nunito(color: Colors.grey.shade700, fontSize: 13),
           ),
           const SizedBox(height: 10),
-
           Row(
             children: [
-              const Icon(Icons.location_on, size: 16),
+              const Icon(Icons.location_on_outlined, size: 15, color: Colors.grey),
               const SizedBox(width: 6),
-              Text(request['location'] ?? "-"),
-            ],
-          ),
-          const SizedBox(height: 6),
-
-          Row(
-            children: [
-              const Icon(Icons.calendar_today, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                request['date'] != null
-                    ? "${DateTime.parse(request['date']).day}/${DateTime.parse(request['date']).month}/${DateTime.parse(request['date']).year}"
-                    : "-",
+              Expanded(
+                child: Text(
+                  request['location'] ?? "—",
+                  style: GoogleFonts.nunito(color: Colors.grey.shade700, fontSize: 13),
+                ),
               ),
             ],
           ),
-
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey),
+              const SizedBox(width: 6),
+              Text(
+                parsedDate != null
+                    ? "${parsedDate.day}/${parsedDate.month}/${parsedDate.year}"
+                    : "—",
+                style: GoogleFonts.nunito(color: Colors.grey.shade700, fontSize: 13),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                print("Button clicked for request ${request['id']}");
-                showBidDialog(request['id']);
-              },
+              onPressed: () => _showBidDialog(request['id']),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: Colors.black87,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
               ),
               child: const Text("Place Bid"),
             ),
@@ -119,81 +110,76 @@ class _BrowseRequestsScreenState extends State<BrowseRequestsScreen> {
     );
   }
 
-  void showBidDialog(int requestId) {
-    print("Dialog opened for request $requestId");
+  Widget _emptyCard(String text) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.nunito(color: Colors.grey.shade600),
+      ),
+    );
+  }
+
+  void _showBidDialog(int requestId) {
     final amountController = TextEditingController();
-    DateTime now = DateTime.now();
+    final now = DateTime.now();
     String twoDigits(int n) => n.toString().padLeft(2, '0');
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Place Bid"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: "Amount (Rs.)"),
-              ),
-              // TextField(
-              //   controller: messageController,
-              //   decoration: const InputDecoration(labelText: "Message"),
-              // ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text("Place Bid"),
+        content: TextField(
+          controller: amountController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: "Amount (Rs.)"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final amount = double.tryParse(
-                  amountController.text.trim(),
-                )?.toInt();
+          ElevatedButton(
+            onPressed: () async {
+              final amount = int.tryParse(amountController.text.trim());
+              if (amount == null || amount <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Enter a valid amount")),
+                );
+                return;
+              }
 
-                if (amount == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Enter a valid number")),
-                  );
-                  return;
-                }
+              try {
+                await ApiService.placeBid(
+                  requestId: requestId,
+                  workerId: widget.workerId,
+                  amount: amount,
+                  todaydate: "${now.year}-${twoDigits(now.month)}-${twoDigits(now.day)}",
+                  todaytime: "${twoDigits(now.hour)}:${twoDigits(now.minute)}:${twoDigits(now.second)}",
+                );
 
-                try {
-                  await ApiService.placeBid(
-                    requestId: requestId,
-                    workerId: widget.workerId,
-                    amount: amount,
-                    todaydate:
-                        "${now.year}-${twoDigits(now.month)}-${twoDigits(now.day)}",
-                    todaytime:
-                        "${twoDigits(now.hour)}:${twoDigits(now.minute)}:${twoDigits(now.second)}",
-                  );
-
-                
-                  setState(() {
-                    requests.removeWhere((r) => r['id'] == requestId);
-                  });
-
-                  Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Bid placed successfully")),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Error placing bid")),
-                  );
-                }
-              },
-              child: const Text("Submit"),
-            ),
-          ],
-        );
-      },
+                if (!mounted) return;
+                setState(() => requests.removeWhere((r) => r['id'] == requestId));
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Bid placed successfully")),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(ApiService.errorMessage(e))),
+                );
+              }
+            },
+            child: const Text("Submit"),
+          ),
+        ],
+      ),
     );
   }
 }

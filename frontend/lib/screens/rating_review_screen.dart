@@ -95,29 +95,13 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(),
+      appBar: const CustomAppBar(title: "Rate Worker"),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Back + title
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back_ios, size: 18),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  "Rate your worker",
-                  style: TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
 
             // Worker info card
             Container(

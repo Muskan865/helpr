@@ -37,8 +37,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   void initState() {
     super.initState();
     currentStatus = widget.job['status'] ?? "arriving";
-    print("Initial status: '$currentStatus'"); // check exact value
-    print("Index in steps: ${steps.indexOf(currentStatus)}");
   }
 
   @override
@@ -209,10 +207,19 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     }
 
     String nextStatus = steps[currentIndex + 1];
-    print("Updating job ${widget.job['id']} to $nextStatus");
-
     try {
-      await ApiService.updateJobStatus(widget.job['id'], nextStatus);
+      final int? jobId = widget.job['id'] is int
+          ? widget.job['id']
+          : int.tryParse(widget.job['id']?.toString() ?? '');
+
+      if (jobId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Unable to update this job right now.")),
+        );
+        return;
+      }
+
+      await ApiService.updateJobStatus(jobId, nextStatus);
 
       setState(() {
         currentStatus = nextStatus;
@@ -228,7 +235,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Failed to update status")));
+      ).showSnackBar(SnackBar(content: Text(ApiService.errorMessage(e))));
     }
   }
 

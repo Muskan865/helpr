@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../screens/chat_list_screen.dart';
 import '../screens/worker_ratings_screen.dart';
 
@@ -24,12 +25,25 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return AppBar(
-      title: Text(title),
+      backgroundColor: const Color(0xFF1E3A8A), // Blue theme
+      elevation: 0.5,
+      shadowColor: Colors.blue.shade200,
+      title: Text(
+        title,
+        style: GoogleFonts.nunito(
+          fontWeight: FontWeight.w800,
+          fontSize: isMobile ? 18 : 22,
+          color: Colors.white,
+        ),
+      ),
       centerTitle: true,
       actions: [
         PopupMenuButton<String>(
-          icon: const Icon(Icons.more_horiz),
+          icon: const Icon(Icons.more_horiz, color: Colors.white),
           onSelected: (value) {
             switch (value) {
               // ================= WORKER FLOW =================
@@ -60,12 +74,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
               // ================= REQUESTER FLOW =================
               case 'chat':
-                if (userId != null) {
+                final chatUserId = userId ?? workerId;
+                if (chatUserId != null) {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => ChatListScreen(
-                        userId: userId!,
+                        userId: chatUserId,
                         isRequester: isRequester,
                       ),
                     ),
@@ -88,6 +103,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               // Worker menu
               return const [
                 PopupMenuItem(
+                  value: 'chat',
+                  child: Text("Chat"),
+                ),
+                PopupMenuItem(
                   value: 'worker_profile',
                   child: Text("Profile"),
                 ),
@@ -100,13 +119,17 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   child: Text("Logout"),
                 ),
               ];
-            } else {
+            } else if (userId != null) {
               // Requester menu
               return const [
                 PopupMenuItem(value: 'chat', child: Text("Chat")),
                 PopupMenuItem(value: 'logout', child: Text("Logout")),
               ];
             }
+
+            return const [
+              PopupMenuItem(value: 'logout', child: Text("Logout")),
+            ];
           },
         ),
       ],

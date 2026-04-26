@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
@@ -9,7 +10,12 @@ import 'screens/worker_profile_screen.dart';
 import 'screens/worker_profile_completion_screen.dart';
 import 'screens/requester_profile_completion_screen.dart';
 import 'screens/requester_profile_screen.dart';
-import 'screens/requester_ratings_screen.dart';
+import 'screens/post_request_screen.dart';
+import 'screens/received_bids_screen.dart';
+import 'screens/requester_active_jobs_screen.dart';
+import 'screens/requester_job_history_screen.dart';
+import 'screens/worker_public_profile_screen.dart';
+import 'screens/rating_review_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,6 +28,45 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF5F7FB),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF2563EB),
+          surface: Colors.white,
+        ),
+        textTheme: GoogleFonts.nunitoTextTheme(),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          elevation: 0.5,
+          shadowColor: Colors.grey.shade200,
+          centerTitle: true,
+          titleTextStyle: GoogleFonts.nunito(
+            color: Colors.black87,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+          iconTheme: const IconThemeData(color: Colors.black87),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black87,
+            foregroundColor: Colors.white,
+            minimumSize: const Size.fromHeight(48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+        ),
+      ),
 
       initialRoute: '/',
 

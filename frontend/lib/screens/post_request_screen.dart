@@ -14,7 +14,6 @@ class PostRequestScreen extends StatefulWidget {
 class _PostRequestScreenState extends State<PostRequestScreen> {
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
-  final _budgetController = TextEditingController();
 
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
@@ -36,7 +35,6 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
   void dispose() {
     _descriptionController.dispose();
     _locationController.dispose();
-    _budgetController.dispose();
     super.dispose();
   }
 
@@ -110,27 +108,13 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(),
+      appBar: const CustomAppBar(title: "Post a Request"),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back_ios, size: 18),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  "Post a request",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
 
             const Text(
               "SERVICE TYPE",
@@ -210,34 +194,6 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
                 hintText: "City, area (e.g. DHA Phase 5)",
                 hintStyle: const TextStyle(color: Colors.grey),
                 prefixIcon: const Icon(Icons.location_on_outlined, size: 18),
-                filled: true,
-                fillColor: const Color(0xFFF3F2EE),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            const Text(
-              "BUDGET (RS.)",
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey,
-                letterSpacing: 1.1,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _budgetController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: "Enter your budget",
-                hintStyle: const TextStyle(color: Colors.grey),
-                prefixText: "Rs.  ",
                 filled: true,
                 fillColor: const Color(0xFFF3F2EE),
                 border: OutlineInputBorder(

@@ -1,11 +1,95 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
+class ApiException implements Exception {
+  final String message;
+
+  const ApiException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 class ApiService {
-  static const String baseUrl = "http://192.168.1.11:3000";
-  // static const String baseUrl = "http://localhost:3000/api";
-  static const String apiBase = "$baseUrl/api";
+  static const String _envBaseUrl = String.fromEnvironment('API_BASE_URL');
+
+  static String get baseUrl {
+    if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
+    if (kIsWeb) return "http://localhost:3000";
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      // Android emulator -> host machine localhost
+      return "http://10.0.2.2:3000";
+    }
+    return "http://localhost:3000";
+  }
+
+  static String get apiBase => "$baseUrl/api";
+
+  static String errorMessage(
+    Object error, {
+    String fallback = "Something went wrong. Please try again.",
+  }) {
+    final raw = error.toString().replaceFirst("Exception: ", "").trim();
+    if (raw.isEmpty) return fallback;
+
+    final lower = raw.toLowerCase();
+    if (lower.contains("failed to fetch") ||
+        lower.contains("failed host lookup") ||
+        lower.contains("connection refused") ||
+        lower.contains("socketexception") ||
+        lower.contains("clientexception")) {
+      return "Can't connect to server. Please make sure backend is running.";
+    }
+
+    final parsed = _decodePossibleErrorPayload(raw);
+    if (parsed != null && parsed.isNotEmpty) {
+      return parsed;
+    }
+
+    return raw;
+  }
+
+  static String _messageFromResponse(http.Response response, String fallback) {
+    final parsed = _decodePossibleErrorPayload(response.body);
+    if (parsed != null && parsed.isNotEmpty) {
+      return parsed;
+    }
+    return fallback;
+  }
+
+  static String? _decodePossibleErrorPayload(String body) {
+    final trimmed = body.trim();
+    if (trimmed.isEmpty) return null;
+
+    Map<String, dynamic>? payload;
+
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is Map<String, dynamic>) payload = decoded;
+    } catch (_) {}
+
+    if (payload == null) {
+      final start = trimmed.indexOf('{');
+      final end = trimmed.lastIndexOf('}');
+      if (start >= 0 && end > start) {
+        try {
+          final decoded = jsonDecode(trimmed.substring(start, end + 1));
+          if (decoded is Map<String, dynamic>) payload = decoded;
+        } catch (_) {}
+      }
+    }
+
+    if (payload != null) {
+      final message = payload['message']?.toString().trim();
+      final error = payload['error']?.toString().trim();
+      if (message != null && message.isNotEmpty) return message;
+      if (error != null && error.isNotEmpty) return error;
+    }
+
+    return null;
+  }
 
   // ---------------- AUTH ----------------
   static Future<Map<String, dynamic>> login(
@@ -21,7 +105,13 @@ class ApiService {
       }),
     );
 
-    return jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw ApiException(
+        _messageFromResponse(response, "Unable to log in. Please try again."),
+      );
+    }
   }
 
   static Future<Map<String, dynamic>> signup(
@@ -41,7 +131,13 @@ class ApiService {
       }),
     );
 
-    return jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw ApiException(
+        _messageFromResponse(response, "Unable to sign up right now."),
+      );
+    }
   }
 
   // ---------------- WORKER DASHBOARD ----------------
@@ -54,7 +150,7 @@ class ApiService {
     if (res.statusCode == 200) {
       return jsonDecode(res.body);
     } else {
-      throw Exception("Failed to load jobs");
+      throw const ApiException("Couldn't load jobs right now.");
     }
   }
 
@@ -66,7 +162,7 @@ class ApiService {
     if (res.statusCode == 200) {
       return jsonDecode(res.body);
     } else {
-      throw Exception("Failed to load bids");
+      throw const ApiException("Couldn't load bids right now.");
     }
   }
 
@@ -78,7 +174,7 @@ class ApiService {
     if (res.statusCode == 200 && res.body.isNotEmpty) {
       return jsonDecode(res.body);
     } else {
-      throw Exception("Failed to load profile");
+      throw const ApiException("Couldn't load profile right now.");
     }
   }
 
@@ -88,7 +184,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception("Failed to load requests");
+      throw const ApiException("Couldn't load requests right now.");
     }
   }
 
@@ -99,7 +195,7 @@ class ApiService {
     if (res.statusCode == 200) {
       return jsonDecode(res.body);
     } else {
-      throw Exception("Failed to load matching requests");
+      throw const ApiException("Couldn't load matching requests right now.");
     }
   }
 
@@ -124,7 +220,9 @@ class ApiService {
 
     if (response.statusCode != 200) {
       print("Bid error body: ${response.body}"); // Add this
-      throw Exception("Failed to place bid");
+      throw ApiException(
+        _messageFromResponse(response, "Couldn't place your bid right now."),
+      );
     }
   }
 
@@ -150,7 +248,40 @@ class ApiService {
     if (res.statusCode == 200) {
       return jsonDecode(res.body);
     } else {
-      throw Exception("Failed: ${res.body}");
+      throw ApiException(
+        _messageFromResponse(
+          res,
+          "Couldn't save worker profile details right now.",
+        ),
+      );
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateWorkerDetails(
+    int userId,
+    String profession,
+    String skills,
+    int experience,
+  ) async {
+    final res = await http.put(
+      Uri.parse("$apiBase/profile/worker/$userId"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "profession": profession,
+        "skills": skills,
+        "experience_years": experience,
+      }),
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body);
+    } else {
+      throw ApiException(
+        _messageFromResponse(
+          res,
+          "Couldn't update worker details right now.",
+        ),
+      );
     }
   }
 
@@ -186,7 +317,16 @@ class ApiService {
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);
 
-    return jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw ApiException(
+        _messageFromResponse(
+          response,
+          "Couldn't complete worker profile right now.",
+        ),
+      );
+    }
   }
 
   static Future<Map<String, dynamic>> completeRequesterProfile(
@@ -213,10 +353,17 @@ class ApiService {
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);
 
-    return jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw ApiException(
+        _messageFromResponse(
+          response,
+          "Couldn't complete requester profile right now.",
+        ),
+      );
+    }
   }
-
-  // ---------------- USER PROFILE ----------------
 
   static Future<Map<String, dynamic>> getUserProfile(int userId) async {
     final res = await http.get(
@@ -226,7 +373,7 @@ class ApiService {
     if (res.statusCode == 200 && res.body.isNotEmpty) {
       return jsonDecode(res.body);
     } else {
-      throw Exception("Failed to load user profile");
+      throw const ApiException("Couldn't load user profile right now.");
     }
   }
 
@@ -248,7 +395,9 @@ class ApiService {
   );
 
   if (response.statusCode != 200) {
-    throw Exception("Failed to submit review");
+    throw ApiException(
+      _messageFromResponse(response, "Couldn't submit review right now."),
+    );
   }
 }
 
@@ -256,7 +405,9 @@ static Future<void> cancelBid(int bidId) async {
     final response = await http.delete(Uri.parse("$apiBase/worker/bid/$bidId"));
 
     if (response.statusCode != 200) {
-      throw Exception("Failed to cancel bid");
+      throw ApiException(
+        _messageFromResponse(response, "Couldn't cancel bid right now."),
+      );
     }
   }
 
@@ -268,7 +419,9 @@ static Future<void> cancelBid(int bidId) async {
     );
 
     if (response.statusCode != 200) {
-      throw Exception("Failed to update status");
+      throw ApiException(
+        _messageFromResponse(response, "Couldn't update job status right now."),
+      );
     }
   }
   // Get Requester ongoing jobs (for chat list)
@@ -280,7 +433,9 @@ static Future<List<dynamic>> getRequesterJobs(int requesterId) async {
   if (response.statusCode == 200) {
     return jsonDecode(response.body);
   } else {
-    throw Exception("Failed to load requester jobs");
+    throw ApiException(
+      _messageFromResponse(response, "Couldn't load your chats right now."),
+    );
   }
 }
   static Future<List<dynamic>> getWorkerRatings(int workerId) async {
@@ -290,7 +445,9 @@ static Future<List<dynamic>> getRequesterJobs(int requesterId) async {
   if (response.statusCode == 200) {
     return jsonDecode(response.body);
   } else {
-    throw Exception("Failed to load ratings");
+    throw ApiException(
+      _messageFromResponse(response, "Couldn't load ratings right now."),
+    );
   }
 }
 
@@ -317,7 +474,9 @@ static Future<List<dynamic>> getRequesterJobs(int requesterId) async {
       }),
     );
     if (res.statusCode != 200) {
-      throw Exception("Failed to post request: ${res.body}");
+      throw ApiException(
+        _messageFromResponse(res, "Couldn't post your request right now."),
+      );
     }
   }
  
@@ -350,7 +509,9 @@ static Future<List<dynamic>> getRequesterJobs(int requesterId) async {
       headers: {"Content-Type": "application/json"},
     );
     if (res.statusCode != 200) {
-      throw Exception("Failed to accept bid: ${res.body}");
+      throw ApiException(
+        _messageFromResponse(res, "Couldn't accept bid right now."),
+      );
     }
   }
  
@@ -382,7 +543,7 @@ static Future<List<dynamic>> getRequesterJobs(int requesterId) async {
     if (res.statusCode == 200 && res.body.isNotEmpty) {
       return jsonDecode(res.body);
     } else {
-      throw Exception("Failed to load worker profile");
+      throw const ApiException("Couldn't load worker profile right now.");
     }
   }
  
@@ -407,7 +568,9 @@ static Future<List<dynamic>> getRequesterJobs(int requesterId) async {
       }),
     );
     if (res.statusCode != 200) {
-      throw Exception("Failed to submit rating: ${res.body}");
+      throw ApiException(
+        _messageFromResponse(res, "Couldn't submit rating right now."),
+      );
     }
   }
  

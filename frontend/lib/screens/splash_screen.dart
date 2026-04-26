@@ -1,6 +1,5 @@
 // splash_screen.dart
 import 'package:flutter/material.dart';
-import 'signup_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -48,17 +47,12 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate to SignUp after 2.8s
-    /*
+    // Navigate to Login after 2.8s
     Future.delayed(const Duration(milliseconds: 2800), () {
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const SignUpScreen()),
-        );
+        Navigator.pushReplacementNamed(context, '/login');
       }
     });
-    */
   }
 
   @override

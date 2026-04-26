@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 import '../services/api_service.dart';
 import '/widgets/appbar.dart';
 
@@ -54,44 +56,44 @@ class _WorkerPublicProfileScreenState
     }
 
     return Scaffold(
-      appBar: const CustomAppBar(),
+      appBar: const CustomAppBar(title: "Worker Profile"),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Back + title
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back_ios, size: 18),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  "Worker Profile",
-                  style: TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
 
             // Avatar + name + rating
             Center(
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.blue.shade100,
-                    child: Text(
-                      (profile!['full_name'] ?? "?")[0].toUpperCase(),
-                      style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue),
-                    ),
+                  Builder(
+                    builder: (_) {
+                      final pictureBase64 = profile!['profile_picture']?.toString();
+                      Uint8List? imageBytes;
+                      if (pictureBase64 != null && pictureBase64.isNotEmpty) {
+                        try {
+                          imageBytes = base64Decode(pictureBase64);
+                        } catch (_) {}
+                      }
+
+                      return CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Colors.blue.shade100,
+                        backgroundImage: imageBytes != null ? MemoryImage(imageBytes) : null,
+                        child: imageBytes == null
+                            ? Text(
+                                (profile!['full_name'] ?? "?")[0].toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                ),
+                              )
+                            : null,
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
                   Text(

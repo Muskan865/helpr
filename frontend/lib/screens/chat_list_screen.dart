@@ -32,12 +32,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
       if (widget.isRequester) {
         jobs = await ApiService.getRequesterJobs(widget.userId);
       } else {
-        // reuse existing worker jobs endpoint, filter ongoing
+        // Reuse worker jobs endpoint, keep all active jobs (not completed)
         final all = await ApiService.getWorkerJobs(widget.userId);
-        jobs = all.where((j) => j['status'] == 'ongoing').toList();
+        jobs = all
+            .where((j) => (j['status'] ?? '').toString().toLowerCase() != 'completed')
+            .toList();
       }
     } catch (e) {
-      print("Chat list error: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ApiService.errorMessage(e))),
+      );
     }
     setState(() => isLoading = false);
   }
@@ -59,7 +64,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           : jobs.isEmpty
               ? Center(
                   child: Text(
-                    "No ongoing jobs with chat",
+                    "No active jobs with chat",
                     style: GoogleFonts.nunito(color: Colors.grey),
                   ),
                 )
@@ -69,6 +74,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   separatorBuilder: (_, __) => const Divider(),
                   itemBuilder: (context, index) {
                     final job = jobs[index];
+                    final dynamic jobIdRaw = job['job_id'] ?? job['id'];
+                    final int? jobId = jobIdRaw is int
+                        ? jobIdRaw
+                        : int.tryParse(jobIdRaw?.toString() ?? '');
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Colors.blue.shade100,
@@ -89,11 +98,20 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
+                        if (jobId == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Chat is not available for this job yet."),
+                            ),
+                          );
+                          return;
+                        }
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => ChatScreen(
-                              jobId: job['job_id'],
+                              jobId: jobId,
                               currentUserId: widget.userId,
                             ),
                           ),

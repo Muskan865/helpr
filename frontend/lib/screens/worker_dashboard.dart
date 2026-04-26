@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import 'browse_requests_screen.dart';
 import 'browse_bids.dart';
 import 'job_history.dart';
 import 'job_detail.dart';
 import '/widgets/appbar.dart';
-import 'worker_ratings_screen.dart';
 
 class WorkerDashboard extends StatefulWidget {
   final int? userId;
@@ -25,7 +25,6 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
 
   bool isLoading = true;
   String? error;
-
   late int workerId;
 
   @override
@@ -36,51 +35,25 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
   }
 
   Future<void> fetchData() async {
+    setState(() {
+      isLoading = true;
+      error = null;
+    });
+
     try {
       profile = await ApiService.getWorkerProfile(workerId);
-    } catch (e) {
-      setState(() {
-        error = "Failed at profile";
-        isLoading = false;
-      });
-    }
-
-    try {
-      ongoingJobs = (await ApiService.getWorkerJobs(
-        workerId,
-      )).where((job) => job['status'] != "completed").toList();
-
-      pastJobs = (await ApiService.getWorkerJobs(
-        workerId,
-      )).where((job) => job['status'] == "completed").toList();
-    } catch (e) {
-      setState(() {
-        error = "Failed at jobs";
-        isLoading = false;
-      });
-    }
-
-    try {
+      final jobs = await ApiService.getWorkerJobs(workerId);
+      ongoingJobs = jobs.where((job) => (job['status'] ?? '').toString().toLowerCase() != "completed").toList();
+      pastJobs = jobs.where((job) => (job['status'] ?? '').toString().toLowerCase() == "completed").toList();
       bids = await ApiService.getWorkerBids(workerId);
-    } catch (e) {
-      setState(() {
-        error = "Failed at bids";
-        isLoading = false;
-      });
-    }
-
-    try {
       serviceRequests = await ApiService.getMatchingRequests(workerId);
     } catch (e) {
-      setState(() {
-        error = "Failed at requests";
-        isLoading = false;
-      });
+      error = ApiService.errorMessage(e);
     }
 
-    setState(() {
-      isLoading = false;
-    });
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -90,167 +63,104 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     }
 
     if (error != null) {
-      return Scaffold(body: Center(child: Text(error!)));
+      return Scaffold(
+        appBar: CustomAppBar(
+          workerId: workerId,
+          userId: workerId,
+          isRequester: false,
+          profile: profile,
+        ),
+        body: Center(child: Text(error!)),
+      );
     }
 
-    return Scaffold(
-      appBar: CustomAppBar(workerId: workerId, profile: profile),
+    final workerName = profile?['full_name']?.toString() ?? "Worker";
 
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+    return Scaffold(
+      appBar: CustomAppBar(
+        workerId: workerId,
+        userId: workerId,
+        isRequester: false,
+        profile: profile,
+      ),
+      body: RefreshIndicator(
+        onRefresh: fetchData,
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Welcome back,", style: TextStyle(color: Colors.grey)),
-
-              const SizedBox(height: 5),
-
               Text(
-                profile?['full_name'] ?? "Worker",
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                "Good to see you,",
+                style: GoogleFonts.nunito(color: Colors.grey.shade600, fontSize: 14),
               ),
-
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => BrowseRequestsScreen(
-                          workerId: workerId,
-                          serviceRequests: serviceRequests,
-                        ),
+              const SizedBox(height: 4),
+              Text(
+                workerName,
+                style: GoogleFonts.nunito(fontWeight: FontWeight.w800, fontSize: 24),
+              ),
+              const SizedBox(height: 16),
+              _summaryRow(),
+              const SizedBox(height: 16),
+              _actionButton(
+                context,
+                label: "Browse Matching Requests",
+                icon: Icons.search_rounded,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BrowseRequestsScreen(
+                        workerId: workerId,
+                        serviceRequests: serviceRequests,
                       ),
-                    );
-                  },
-
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[200],
-                    foregroundColor: Colors.black,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ),
-                  child: const Text("Browse More requests"),
-                ),
+                  ).then((_) => fetchData());
+                },
               ),
-
-              const SizedBox(height: 20),
-
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Nearby Requests",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+              const SizedBox(height: 12),
+              _actionButton(
+                context,
+                label: "My Bids",
+                icon: Icons.gavel_rounded,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BrowseBidsScreen(bids: bids),
                     ),
-                    const SizedBox(height: 10),
-
-                    if (serviceRequests.isEmpty)
-                      const Text("No nearby requests")
-                    else
-                      ...serviceRequests.map(
-                        (request) => requestItem(
-                          request['service_type'] ?? "",
-                          request['description'] ?? "",
-                          request['location'] ?? "-",
-                          request['date'] ?? "-",
-                          "Rs. 1500",
-                        ),
-                      ),
-                  ],
+                  ).then((_) => fetchData());
+                },
+              ),
+              const SizedBox(height: 24),
+              Text(
+                "ACTIVE JOBS",
+                style: GoogleFonts.nunito(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey.shade600,
+                  letterSpacing: 1,
+                  fontSize: 12,
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => BrowseBidsScreen(bids: bids),
-                      ),
-                    );
-                  },
-
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[200],
-                    foregroundColor: Colors.black,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text("Browse My Bids"),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              const Text(
-                "ONGOING JOBS",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-
               const SizedBox(height: 10),
-
               if (ongoingJobs.isEmpty)
-                const Text("No ongoing jobs")
+                _emptyState("No active jobs right now")
               else
-                ...ongoingJobs.map(
-                  (job) => jobCard(
-                    job['service_type'] ?? "",
-
-                    "${job['client_name'] ?? "-"} · Due ${job['date'] != null ? "${DateTime.parse(job['date']).day}/${DateTime.parse(job['date']).month}/${DateTime.parse(job['date']).year}" : "-"}",
-                    // job['status'] ?? "Pending",
-                    job,
-                  ),
-                ),
-
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            BrowsePastJobs(pastJobs: pastJobs),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[200],
-                    foregroundColor: Colors.black,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                ...ongoingJobs.take(3).map((job) => _jobCard(job)),
+              const SizedBox(height: 12),
+              _actionButton(
+                context,
+                label: "Job History",
+                icon: Icons.history_rounded,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BrowsePastJobs(pastJobs: pastJobs),
                     ),
-                  ),
-                  child: const Text("View Job History"),
-                ),
+                  );
+                },
               ),
             ],
           ),
@@ -259,113 +169,156 @@ class _WorkerDashboardState extends State<WorkerDashboard> {
     );
   }
 
-  Widget requestItem(
-    String serviceType,
-    String description,
-    String location,
-    String date,
-    String price,
-  ) {
-    return Column(
+  Widget _summaryRow() {
+    return Row(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // LEFT SIDE
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      serviceType,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      location, // or description if you prefer
-                      style: const TextStyle(color: Colors.grey, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-
-              Text(
-                price,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+        Expanded(
+          child: _summaryCard(
+            label: "Matching",
+            value: "${serviceRequests.length}",
+            icon: Icons.location_searching_rounded,
           ),
         ),
-
-        // Divider like in first image
-        const Divider(height: 1, color: Colors.grey),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _summaryCard(
+            label: "Pending Bids",
+            value: "${bids.where((b) => (b['bid_status'] ?? '') == 'pending').length}",
+            icon: Icons.pending_actions_rounded,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _summaryCard(
+            label: "Active Jobs",
+            value: "${ongoingJobs.length}",
+            icon: Icons.work_outline_rounded,
+          ),
+        ),
       ],
     );
   }
 
-  // Job Card Widget
-  Widget jobCard(String title, String subtitle, Map job) {
+  Widget _summaryCard({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Colors.blue.shade700, size: 18),
+          const SizedBox(height: 8),
+          Text(value, style: GoogleFonts.nunito(fontWeight: FontWeight.w800, fontSize: 20)),
+          Text(label, style: GoogleFonts.nunito(color: Colors.grey.shade600, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 18),
+        label: Text(label, style: GoogleFonts.nunito(fontWeight: FontWeight.w700)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 0,
+          side: BorderSide(color: Colors.grey.shade300),
+          minimumSize: const Size.fromHeight(50),
+        ),
+      ),
+    );
+  }
+
+  Widget _jobCard(Map job) {
+    final rawDate = job['date']?.toString();
+    final parsedDate = rawDate != null ? DateTime.tryParse(rawDate) : null;
+    final dueDate = parsedDate != null
+        ? "${parsedDate.day}/${parsedDate.month}/${parsedDate.year}"
+        : "—";
+
     return InkWell(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(14),
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                JobDetailsScreen(job: job, workerId: workerId),
+            builder: (context) => JobDetailsScreen(job: job, workerId: workerId),
           ),
-        );
+        ).then((_) => fetchData());
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color.fromARGB(255, 109, 109, 109)),
-          borderRadius: BorderRadius.circular(22),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.shade200),
         ),
-        child: Column(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.handyman_outlined, color: Colors.blue.shade700, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    job['service_type'] ?? "",
+                    style: GoogleFonts.nunito(fontWeight: FontWeight.w700, fontSize: 15),
                   ),
-                ),
-                // Container(
-                //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                //   decoration: BoxDecoration(
-                //     color: Colors.grey[300],
-                //     borderRadius: BorderRadius.circular(20),
-                //   ),
-                //   // child: Text(status, style: const TextStyle(fontSize: 12)),
-                // ),
-              ],
+                  const SizedBox(height: 3),
+                  Text(
+                    "${job['client_name'] ?? 'Client'} • $dueDate",
+                    style: GoogleFonts.nunito(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 5),
-            Row(
-              children: [
-                Text(subtitle, style: const TextStyle(color: Colors.grey)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: 0.5,
-              backgroundColor: Colors.grey[300],
-              color: Colors.black,
-            ),
+            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade500),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _emptyState(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Text(
+        message,
+        style: GoogleFonts.nunito(color: Colors.grey.shade600, fontSize: 14),
       ),
     );
   }

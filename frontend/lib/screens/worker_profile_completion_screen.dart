@@ -79,7 +79,7 @@ class _WorkerProfileCompletionScreenState
     setState(() => isLoading = true);
 
     try {
-      final result = await ApiService.completeWorkerProfile(
+      await ApiService.completeWorkerProfile(
         widget.userId,
         _selectedProfession!,
         _skillsController.text.trim(),

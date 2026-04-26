@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '/widgets/appbar.dart';
 
 class BrowseBidsScreen extends StatefulWidget {
   final List<dynamic> bids;
+
   const BrowseBidsScreen({super.key, required this.bids});
 
   @override
@@ -11,144 +13,107 @@ class BrowseBidsScreen extends StatefulWidget {
 }
 
 class _BrowseBidsScreenState extends State<BrowseBidsScreen> {
-  bool isLoading = true;
-  String? error;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(),
-      body: Padding(
+      appBar: const CustomAppBar(title: "My Bids"),
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            const Text(
-              "My Bids",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-
-            if (widget.bids.isEmpty)
-              const Text("No bids found")
-            else
-              ...widget.bids.map((bid) => bidCard(bid)),
-          ],
-        ),
+        children: [
+          if (widget.bids.isEmpty)
+            _emptyCard("You haven't placed any bids yet.")
+          else
+            ...widget.bids.map((bid) => _bidCard(bid)),
+        ],
       ),
     );
   }
 
-  Widget bidCard(Map bid) {
+  Widget _bidCard(Map bid) {
+    final status = (bid['bid_status'] ?? '').toString();
+    Color statusColor = Colors.grey;
+    if (status == 'pending') statusColor = Colors.orange;
+    if (status == 'accepted') statusColor = Colors.green;
+    if (status == 'rejected') statusColor = Colors.redAccent;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey, width: 1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             bid['service_type'] ?? "",
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
-
           Text(
             bid['description'] ?? "",
-            style: const TextStyle(color: Colors.grey),
+            style: GoogleFonts.nunito(color: Colors.grey.shade700, fontSize: 13),
           ),
           const SizedBox(height: 10),
-
-          Row(
-            children: [
-              const Icon(Icons.location_on, size: 16),
-              const SizedBox(width: 6),
-              Text(bid['location'] ?? "-"),
-            ],
-          ),
-
-          const SizedBox(height: 6),
-
-          Row(
-            children: [
-              const Icon(Icons.calendar_today, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                bid['date'] != null
-                    ? "${DateTime.parse(bid['date']).day}/${DateTime.parse(bid['date']).month}/${DateTime.parse(bid['date']).year}"
-                    : "-",
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
           Text(
-            "Your Bid: Rs. ${bid['bid_amount']}",
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            "Bid Amount: Rs. ${bid['bid_amount'] ?? '—'}",
+            style: GoogleFonts.nunito(fontWeight: FontWeight.w700, fontSize: 14),
           ),
-
-          const SizedBox(height: 6),
-
+          const SizedBox(height: 4),
           Text(
-            "Status: ${bid['bid_status']}",
-            style: TextStyle(
-              color: bid['bid_status'] == 'pending'
-                  ? Colors.orange
-                  : Colors.green,
-              fontWeight: FontWeight.w600,
-            ),
+            "Status: ${status.isEmpty ? 'unknown' : status}",
+            style: GoogleFonts.nunito(color: statusColor, fontWeight: FontWeight.w600),
           ),
-
-          const SizedBox(height: 12),
-
-      
-          if (bid['bid_status'] == 'pending')
+          if (status == 'pending') ...[
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  cancelBid(bid['bid_id']);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+              child: OutlinedButton(
+                onPressed: () => _cancelBid(bid['bid_id']),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.redAccent,
+                  side: const BorderSide(color: Colors.redAccent),
+                  minimumSize: const Size.fromHeight(44),
                 ),
                 child: const Text("Cancel Bid"),
               ),
             ),
+          ],
         ],
       ),
     );
   }
 
-  void cancelBid(int bidId) async {
+  Widget _emptyCard(String text) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.nunito(color: Colors.grey.shade600),
+      ),
+    );
+  }
+
+  Future<void> _cancelBid(int bidId) async {
     try {
       await ApiService.cancelBid(bidId);
-
-      setState(() {
-        widget.bids.removeWhere((b) => b['bid_id'] == bidId);
-      });
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Bid cancelled")));
+      if (!mounted) return;
+      setState(() => widget.bids.removeWhere((b) => b['bid_id'] == bidId));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Bid cancelled")),
+      );
     } catch (e) {
-      print(e);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Failed to cancel bid")));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ApiService.errorMessage(e))),
+      );
     }
   }
 }

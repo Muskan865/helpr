@@ -2,8 +2,6 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import '../services/api_service.dart';
-import 'worker_profile_completion_screen.dart';
-import 'requester_profile_completion_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -126,7 +124,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   // 1. Empty check
                   if (name.isEmpty || phone.isEmpty || password.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("⚠️ Please fill all fields")),
+                      const SnackBar(content: Text("Please fill all fields")),
                     );
                     return;
                   }
@@ -135,7 +133,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   if (!RegExp(r'^03[0-9]{9}$').hasMatch(phone)) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text("📱 Enter phone like 03XXXXXXXXX"),
+                        content: Text("Enter phone like 03XXXXXXXXX"),
                       ),
                     );
                     return;
@@ -145,7 +143,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   if (password.length < 6) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text("🔒 Password must be at least 6 characters"),
+                        content: Text("Password must be at least 6 characters"),
                       ),
                     );
                     return;
@@ -168,7 +166,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text("✅ Account created successfully!"),
+                            content: Text("Account created successfully!"),
                             duration: Duration(seconds: 2),
                           ),
                         );
@@ -204,7 +202,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     print("Signup error: $e");
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("❌ Server error: $e")),
+                        SnackBar(content: Text(ApiService.errorMessage(e))),
                       );
                     }
                   }

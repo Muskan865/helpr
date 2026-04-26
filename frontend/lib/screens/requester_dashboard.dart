@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import 'post_request_screen.dart';
@@ -37,17 +39,23 @@ class _RequesterDashboardState extends State<RequesterDashboard> {
   Future<void> _fetchData() async {
     try {
       profile = await ApiService.getUserProfile(requesterId);
-    } catch (_) {}
+    } catch (e) {
+      print("Error fetching requester profile: $e");
+    }
 
     try {
       final jobs = await ApiService.getRequesterActiveJobs(requesterId);
       activeJobs = jobs;
-    } catch (_) {}
+    } catch (e) {
+      print("Error fetching active jobs: $e");
+    }
 
     try {
       final bids = await ApiService.getRequesterBids(requesterId);
       receivedBids = bids;
-    } catch (_) {}
+    } catch (e) {
+      print("Error fetching bids: $e");
+    }
 
     setState(() => isLoading = false);
   }
@@ -73,17 +81,26 @@ class _RequesterDashboardState extends State<RequesterDashboard> {
         .map((w) => w.isNotEmpty ? w[0] : "")
         .join()
         .toUpperCase();
+    final String? pictureBase64 = profile?['profile_picture'];
+    Uint8List? imageBytes;
+    if (pictureBase64 != null && pictureBase64.isNotEmpty) {
+      try {
+        imageBytes = base64Decode(pictureBase64);
+      } catch (_) {
+        imageBytes = null;
+      }
+    }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
+      backgroundColor: const Color(0xFFF0F4F8),
 
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF1E3A8A), // Blue theme
         elevation: 0.5,
-        shadowColor: Colors.grey.shade200,
+        shadowColor: Colors.blue.shade200,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.black87),
+            icon: const Icon(Icons.menu, color: Colors.white),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
@@ -92,7 +109,7 @@ class _RequesterDashboardState extends State<RequesterDashboard> {
           style: GoogleFonts.nunito(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: Colors.blue,
+            color: Colors.white,
             letterSpacing: 0.5,
           ),
         ),
@@ -102,35 +119,14 @@ class _RequesterDashboardState extends State<RequesterDashboard> {
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_outlined,
-                    color: Colors.black87),
-                onPressed: () {},
-              ),
-              if (receivedBids.isNotEmpty)
-                Positioned(
-                  right: 10,
-                  top: 10,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                        color: Colors.blue, shape: BoxShape.circle),
-                  ),
-                ),
-            ],
-          ),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
                 icon: const Icon(Icons.chat_bubble_outline,
-                    color: Colors.black87),
+                    color: Colors.white),
                     onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ChatListScreen(
-                          userId: 5,           // requester id that actually has ongoing jobs
+                        builder: (context) => ChatListScreen(
+                          userId: requesterId,
                           isRequester: true,
                         ),
                       ),
@@ -144,7 +140,7 @@ class _RequesterDashboardState extends State<RequesterDashboard> {
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                      color: Colors.blue, shape: BoxShape.circle),
+                      color: Colors.amber, shape: BoxShape.circle),
                 ),
               ),
             ],
@@ -158,7 +154,8 @@ class _RequesterDashboardState extends State<RequesterDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
+              Container(
+                color: const Color(0xFF1E3A8A),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 20, vertical: 24),
                 child: Row(
@@ -166,14 +163,18 @@ class _RequesterDashboardState extends State<RequesterDashboard> {
                     CircleAvatar(
                       radius: 28,
                       backgroundColor: Colors.blue.shade100,
-                      child: Text(
-                        initials,
-                        style: GoogleFonts.nunito(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
+                      backgroundImage:
+                          imageBytes != null ? MemoryImage(imageBytes) : null,
+                      child: imageBytes == null
+                          ? Text(
+                              initials,
+                              style: GoogleFonts.nunito(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
+                            )
+                          : null,
                     ),
                     const SizedBox(width: 14),
                     Column(
@@ -184,12 +185,13 @@ class _RequesterDashboardState extends State<RequesterDashboard> {
                           style: GoogleFonts.nunito(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
+                            color: Colors.white,
                           ),
                         ),
                         Text(
                           "Requester",
                           style: GoogleFonts.nunito(
-                              color: Colors.grey, fontSize: 13),
+                              color: Colors.blue.shade100, fontSize: 13),
                         ),
                       ],
                     ),
@@ -236,7 +238,6 @@ class _RequesterDashboardState extends State<RequesterDashboard> {
 
               const Spacer(),
               const Divider(height: 1),
-              _drawerItem(Icons.help_outline_outlined, "Help"),
               _drawerItem(Icons.logout, "Logout", onTap: () {
                 Navigator.pushNamedAndRemoveUntil(
                     context, '/login', (route) => false);
@@ -280,7 +281,7 @@ class _RequesterDashboardState extends State<RequesterDashboard> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.edit_note_outlined,
-                        color: Colors.black87, size: 28),
+                        color: Color(0xFF1E3A8A), size: 28),
                     onPressed: () {
                       Navigator.push(
                         context,

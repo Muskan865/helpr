@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  labelText: 'Email or Phone',
+                  labelText: 'Phone Number (03xxxxxxxxx)',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -84,33 +84,45 @@ class _LoginScreenState extends State<LoginScreen> {
               // Login button
               ElevatedButton(
                 onPressed: () async {
-                  final result = await ApiService.login(
-                    _emailController.text,
-                    _passwordController.text,
-                  );
+                  try {
+                    final result = await ApiService.login(
+                      _emailController.text,
+                      _passwordController.text,
+                    );
 
-                  if (result["message"] == "Login successful") {
-                    final role = result["user"]["role"];
+                    if (result["message"] == "Login successful" &&
+                        result["user"] != null &&
+                        result["user"]["id"] != null &&
+                        result["user"]["role"] != null) {
+                      final role = result["user"]["role"];
+                      final userId = result["user"]["id"];
 
-                    if (!mounted) return;
+                      if (!mounted) return;
 
-                    if (role == "worker") {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => WorkerDashboard(userId: result["user"]["id"]),
-                        ),
-                      );
+                      if (role == "worker") {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => WorkerDashboard(userId: userId),
+                          ),
+                        );
+                      } else {
+                        Navigator.pushNamed(
+                          context,
+                          '/requesterDashboard',
+                          arguments: {'userId': userId},
+                        );
+                      }
                     } else {
-                      Navigator.pushNamed(
-                        context,
-                        '/requesterDashboard',
-                        arguments: {'userId': result["user"]["id"]},
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(result["message"] ?? "Login failed")),
                       );
                     }
-                  } else {
+                  } catch (e) {
+                    if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(result["message"] ?? "Login failed")),
+                      SnackBar(content: Text(ApiService.errorMessage(e))),
                     );
                   }
                 },
