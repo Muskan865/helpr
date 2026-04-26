@@ -293,7 +293,7 @@ static Future<List<dynamic>> getRequesterJobs(int requesterId) async {
     throw Exception("Failed to load ratings");
   }
 }
-}
+
 // ---------------- REQUESTER: SERVICE REQUESTS ----------------
  
   static Future<void> postServiceRequest({
