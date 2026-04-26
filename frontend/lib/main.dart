@@ -9,6 +9,7 @@ import 'screens/worker_profile_screen.dart';
 import 'screens/worker_profile_completion_screen.dart';
 import 'screens/requester_profile_completion_screen.dart';
 import 'screens/requester_profile_screen.dart';
+import 'screens/requester_ratings_screen.dart';
 
 void main() {
   runApp(const MyApp());
