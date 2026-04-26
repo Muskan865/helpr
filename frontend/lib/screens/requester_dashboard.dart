@@ -8,7 +8,7 @@ import 'requester_job_history_screen.dart';
 import 'requester_job_tracking_screen.dart';
 import 'requester_open_requests_screen.dart';
 import 'chat_list_screen.dart';  
-
+import 'requester_ratings_screen.dart';
 
 class RequesterDashboard extends StatefulWidget {
   final int? userId;
