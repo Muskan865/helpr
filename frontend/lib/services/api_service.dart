@@ -294,3 +294,134 @@ static Future<List<dynamic>> getRequesterJobs(int requesterId) async {
   }
 }
 }
+// ---------------- REQUESTER: SERVICE REQUESTS ----------------
+ 
+  static Future<void> postServiceRequest({
+    required int requesterId,
+    required String serviceType,
+    required String description,
+    required String date,
+    required String time,
+    required String location,
+  }) async {
+    final res = await http.post(
+      Uri.parse("$apiBase/requester/request"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "requester_id": requesterId,
+        "service_type": serviceType,
+        "description": description,
+        "date": date,
+        "time": time,
+        "location": location,
+      }),
+    );
+    if (res.statusCode != 200) {
+      throw Exception("Failed to post request: ${res.body}");
+    }
+  }
+ 
+  static Future<List<dynamic>> getAllOpenRequests() async {
+    final res = await http.get(
+      Uri.parse("$apiBase/requester/requests/open"),
+    );
+    return jsonDecode(res.body);
+  }
+
+  static Future<List<dynamic>> getRequesterOpenRequests(int requesterId) async {
+    final res = await http.get(
+      Uri.parse("$apiBase/requester/$requesterId/requests/open"),
+    );
+    return jsonDecode(res.body);
+  }
+ 
+  // ---------------- REQUESTER: BIDS ----------------
+ 
+  static Future<List<dynamic>> getRequesterBids(int requesterId) async {
+    final res = await http.get(
+      Uri.parse("$apiBase/requester/$requesterId/bids"),
+    );
+    return jsonDecode(res.body);
+  }
+ 
+  static Future<void> acceptBid(int bidId) async {
+    final res = await http.put(
+      Uri.parse("$apiBase/requester/bid/$bidId/accept"),
+      headers: {"Content-Type": "application/json"},
+    );
+    if (res.statusCode != 200) {
+      throw Exception("Failed to accept bid: ${res.body}");
+    }
+  }
+ 
+  // ---------------- REQUESTER: JOBS ----------------
+ 
+  static Future<List<dynamic>> getRequesterActiveJobs(
+      int requesterId) async {
+    final res = await http.get(
+      Uri.parse("$apiBase/requester/$requesterId/active-jobs"),
+    );
+    return jsonDecode(res.body);
+  }
+ 
+  static Future<List<dynamic>> getRequesterJobHistory(
+      int requesterId) async {
+    final res = await http.get(
+      Uri.parse("$apiBase/requester/$requesterId/job-history"),
+    );
+    return jsonDecode(res.body);
+  }
+ 
+  // ---------------- REQUESTER: WORKER PUBLIC PROFILE ----------------
+ 
+  static Future<Map<String, dynamic>> getWorkerPublicProfile(
+      int workerId) async {
+    final res = await http.get(
+      Uri.parse("$apiBase/requester/worker/$workerId/profile"),
+    );
+    if (res.statusCode == 200 && res.body.isNotEmpty) {
+      return jsonDecode(res.body);
+    } else {
+      throw Exception("Failed to load worker profile");
+    }
+  }
+ 
+  // ---------------- REQUESTER: RATINGS ----------------
+ 
+  static Future<void> submitRating({
+    required int reviewerId,
+    required int revieweeId,
+    required double rating,
+    required String comment,
+    required int jobId,
+  }) async {
+    final res = await http.post(
+      Uri.parse("$apiBase/requester/rating"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "reviewer_id": reviewerId,
+        "reviewee_id": revieweeId,
+        "rating": rating,
+        "comment": comment,
+        "job_id": jobId,
+      }),
+    );
+    if (res.statusCode != 200) {
+      throw Exception("Failed to submit rating: ${res.body}");
+    }
+  }
+ 
+  static Future<List<dynamic>> getRequesterRatings(
+      int requesterId) async {
+    final res = await http.get(
+      Uri.parse("$apiBase/requester/$requesterId/ratings"),
+    );
+    return jsonDecode(res.body);
+  }
+
+  static bool isAllowedProfileImage(XFile file) {
+  final ext = file.name.split('.').last.toLowerCase();
+  return ext == 'jpg' || ext == 'jpeg' || ext == 'png';
+}
+
+}

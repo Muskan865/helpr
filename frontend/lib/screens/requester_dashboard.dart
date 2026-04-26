@@ -1,12 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'chat_list_screen.dart';          
+import '../services/api_service.dart';
+import 'post_request_screen.dart';
+import 'received_bids_screen.dart';
+import 'requester_active_jobs_screen.dart';
+import 'requester_job_history_screen.dart';
+import 'requester_job_tracking_screen.dart';
+import 'requester_open_requests_screen.dart';
+import 'chat_list_screen.dart';  
+import 'requester_ratings_screen.dart';
 
-class RequesterDashboard extends StatelessWidget {
-  const RequesterDashboard({super.key});
+class RequesterDashboard extends StatefulWidget {
+  final int? userId;
+
+  const RequesterDashboard({super.key, this.userId});
+
+  @override
+  State<RequesterDashboard> createState() => _RequesterDashboardState();
+}
+
+class _RequesterDashboardState extends State<RequesterDashboard> {
+  Map<String, dynamic>? profile;
+  List<dynamic> activeJobs = [];
+  List<dynamic> receivedBids = [];
+  bool isLoading = true;
+  String? error;
+  late int requesterId;
+
+  @override
+  void initState() {
+    super.initState();
+    requesterId = widget.userId ?? 4;
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      profile = await ApiService.getUserProfile(requesterId);
+    } catch (_) {}
+
+    try {
+      final jobs = await ApiService.getRequesterActiveJobs(requesterId);
+      activeJobs = jobs;
+    } catch (_) {}
+
+    try {
+      final bids = await ApiService.getRequesterBids(requesterId);
+      receivedBids = bids;
+    } catch (_) {}
+
+    setState(() => isLoading = false);
+  }
+
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return "Good Morning,";
+    if (hour < 17) return "Good Afternoon,";
+    return "Good Evening,";
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator()));
+    }
+
+    final name = profile?['full_name'] ?? "User";
+    final initials = name
+        .split(" ")
+        .take(2)
+        .map((w) => w.isNotEmpty ? w[0] : "")
+        .join()
+        .toUpperCase();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
 
@@ -31,7 +98,6 @@ class RequesterDashboard extends StatelessWidget {
         ),
         centerTitle: true,
         actions: [
-          // Notification icon
           Stack(
             alignment: Alignment.center,
             children: [
@@ -40,40 +106,37 @@ class RequesterDashboard extends StatelessWidget {
                     color: Colors.black87),
                 onPressed: () {},
               ),
-              Positioned(
-                right: 10,
-                top: 10,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
+              if (receivedBids.isNotEmpty)
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                        color: Colors.blue, shape: BoxShape.circle),
                   ),
                 ),
-              ),
             ],
           ),
-
-          
           Stack(
             alignment: Alignment.center,
             children: [
               IconButton(
                 icon: const Icon(Icons.chat_bubble_outline,
                     color: Colors.black87),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ChatListScreen(
-                        userId: 5,           // requester id that actually has ongoing jobs
-                        isRequester: true,
+                    onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ChatListScreen(
+                          userId: 5,           // requester id that actually has ongoing jobs
+                          isRequester: true,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
               Positioned(
                 right: 10,
                 top: 10,
@@ -81,9 +144,7 @@ class RequesterDashboard extends StatelessWidget {
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                  ),
+                      color: Colors.blue, shape: BoxShape.circle),
                 ),
               ),
             ],
@@ -98,15 +159,15 @@ class RequesterDashboard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 24),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 28,
                       backgroundColor: Colors.blue.shade100,
                       child: Text(
-                        "SR",
+                        initials,
                         style: GoogleFonts.nunito(
                           color: Colors.blue,
                           fontWeight: FontWeight.w700,
@@ -119,7 +180,7 @@ class RequesterDashboard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Sara Rahman",
+                          name,
                           style: GoogleFonts.nunito(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
@@ -128,9 +189,7 @@ class RequesterDashboard extends StatelessWidget {
                         Text(
                           "Requester",
                           style: GoogleFonts.nunito(
-                            color: Colors.grey,
-                            fontSize: 13,
-                          ),
+                              color: Colors.grey, fontSize: 13),
                         ),
                       ],
                     ),
@@ -141,14 +200,47 @@ class RequesterDashboard extends StatelessWidget {
               const Divider(height: 1),
               const SizedBox(height: 10),
 
-              _drawerItem(Icons.person_2_outlined, "Profile"),
-              _drawerItem(Icons.history, "History"),
-              _drawerItem(Icons.edit_note_outlined, "Post a Request"),
+              _drawerItem(Icons.person_2_outlined, "Profile", onTap: () {
+                Navigator.pushNamed(context, '/requesterProfile',
+                    arguments: {'userId': requesterId});
+              }),
+              _drawerItem(Icons.history, "History", onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RequesterJobHistoryScreen(
+                        requesterId: requesterId),
+                  ),
+                );
+              }),
+               _drawerItem(Icons.star_outline, "My Ratings", onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RequesterRatingsScreen(
+                        requesterId: requesterId),
+                  ),
+                );
+              }),
+              _drawerItem(Icons.edit_note_outlined, "Post a Request",
+                  onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        PostRequestScreen(requesterId: requesterId),
+                  ),
+                ).then((_) => _fetchData());
+              }),
 
               const Spacer(),
               const Divider(height: 1),
               _drawerItem(Icons.help_outline_outlined, "Help"),
-              _drawerItem(Icons.logout, "Logout"),
+              _drawerItem(Icons.logout, "Logout", onTap: () {
+                Navigator.pushNamedAndRemoveUntil(
+                    context, '/login', (route) => false);
+              }),
 
               const SizedBox(height: 10),
             ],
@@ -156,224 +248,291 @@ class RequesterDashboard extends StatelessWidget {
         ),
       ),
 
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Good Morning,",
-                      style: GoogleFonts.nunito(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      "Sara Rahman",
-                      style: GoogleFonts.nunito(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit_note_outlined,
-                      color: Colors.black87, size: 28),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
+      body: RefreshIndicator(
+        onRefresh: _fetchData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Greeting row
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Received bids",
+                        _greeting(),
                         style: GoogleFonts.nunito(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
+                            color: Colors.grey, fontSize: 14),
                       ),
-                      const SizedBox(height: 4),
                       Text(
-                        "Tap to review",
+                        name,
                         style: GoogleFonts.nunito(
-                          color: Colors.grey,
-                          fontSize: 13,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
                   ),
-                  CircleAvatar(
-                    backgroundColor: Colors.black,
-                    child: Text(
-                      "5",
-                      style: GoogleFonts.nunito(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_note_outlined,
+                        color: Colors.black87, size: 28),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              PostRequestScreen(requesterId: requesterId),
+                        ),
+                      ).then((_) => _fetchData());
+                    },
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Received Bids Card
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ReceivedBidsScreen(
+                          requesterId: requesterId),
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[200],
-                  foregroundColor: Colors.black,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
+                  ).then((_) => _fetchData());
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                child: Text(
-                  "Browse Active Requests",
-                  style: GoogleFonts.nunito(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Text(
-              "ACTIVE JOBS",
-              style: GoogleFonts.nunito(
-                fontWeight: FontWeight.w700,
-                color: Colors.grey,
-                fontSize: 12,
-                letterSpacing: 1.2,
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            Expanded(
-              child: ListView(
-                children: const [
-                  RequestCard(
-                    title: "Logo design for app",
-                    subtitle: "Posted 2 days ago • 4 bids",
-                    status: "In Review",
-                  ),
-                  RequestCard(
-                    title: "Furniture delivery",
-                    subtitle: "Posted 5 days ago • 2 bids",
-                    status: "Bidding",
-                  ),
-                  RequestCard(
-                    title: "Plumbing quote",
-                    subtitle: "Posted today • 1 bid",
-                    status: "Open",
-                  ),
-                ],
-              ),
-            ),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[200],
-                  foregroundColor: Colors.black,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Received bids",
+                            style: GoogleFonts.nunito(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            receivedBids.isEmpty
+                                ? "No bids yet"
+                                : "Tap to review",
+                            style: GoogleFonts.nunito(
+                                color: Colors.grey, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                      CircleAvatar(
+                        backgroundColor: Colors.black,
+                        child: Text(
+                          "${receivedBids.length}",
+                          style: GoogleFonts.nunito(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Text(
-                  "All Active Jobs",
-                  style: GoogleFonts.nunito(fontWeight: FontWeight.w600),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Browse Active Requests Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RequesterOpenRequestsScreen(
+                            requesterId: requesterId),
+                      ),
+                    ).then((_) => _fetchData());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    "Browse Active Requests",
+                    style:
+                        GoogleFonts.nunito(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 6),
-          ],
+            //  const SizedBox(height: 20),
+
+              // // Post a Request Button
+              // SizedBox(
+              //   width: double.infinity,
+              //   child: ElevatedButton(
+              //     onPressed: () {
+              //       Navigator.push(
+              //         context,
+              //         MaterialPageRoute(
+              //           builder: (_) =>
+              //               PostRequestScreen(requesterId: requesterId),
+              //         ),
+              //       ).then((_) => _fetchData());
+              //     },
+              //     style: ElevatedButton.styleFrom(
+              //       backgroundColor: Colors.black,
+              //       foregroundColor: Colors.white,
+              //       elevation: 0,
+              //       padding: const EdgeInsets.symmetric(vertical: 14),
+              //       shape: RoundedRectangleBorder(
+              //           borderRadius: BorderRadius.circular(12)),
+              //     ),
+              //     child: Text(
+              //       "+ Post a Request",
+              //       style:
+              //           GoogleFonts.nunito(fontWeight: FontWeight.w600),
+              //     ),
+              //   ),
+              // ),
+
+              const SizedBox(height: 20),
+
+              // ACTIVE JOBS section label
+              Text(
+                "ACTIVE JOBS",
+                style: GoogleFonts.nunito(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey,
+                  fontSize: 12,
+                  letterSpacing: 1.2,
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // Show up to 3 active jobs inline
+              if (activeJobs.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    "No active jobs right now.",
+                    style: GoogleFonts.nunito(
+                        color: Colors.grey, fontSize: 14),
+                  ),
+                )
+              else
+                ...activeJobs.take(3).map(
+                      (job) => _activeJobCard(context, job),
+                    ),
+
+              const SizedBox(height: 12),
+
+              // All Active Jobs Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RequesterActiveJobsScreen(
+                            requesterId: requesterId),
+                      ),
+                    ).then((_) => _fetchData());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    "All Active Jobs",
+                    style:
+                        GoogleFonts.nunito(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // History Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RequesterJobHistoryScreen(
+                            requesterId: requesterId),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    "Job History",
+                    style:
+                        GoogleFonts.nunito(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 6),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  static Widget _drawerItem(IconData icon, String label,
-      {bool badge = false}) {
-    return ListTile(
-      leading: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Icon(icon, color: Colors.grey.shade700),
-          if (badge)
-            Positioned(
-              right: -2,
-              top: -2,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                ),
-              ),
+  Widget _activeJobCard(BuildContext context, Map job) {
+    final status = job['status'] ?? "arriving";
+    final statusLabels = {
+      "arriving": "Arriving",
+      "arrived": "Arrived",
+      "in_progress": "In Progress",
+    };
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RequesterJobTrackingScreen(
+              job: job,
+              requesterId: requesterId,
             ),
-        ],
-      ),
-      title: Text(
-        label,
-        style: GoogleFonts.nunito(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-      onTap: () {},
-    );
-  }
-}
-
-class RequestCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String status;
-  final bool isPast;
-
-  const RequestCard({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.status,
-    this.isPast = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: isPast ? 0.5 : 1,
+          ),
+        ).then((_) => _fetchData());
+      },
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.all(14),
@@ -390,7 +549,7 @@ class RequestCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    job['service_type'] ?? "",
                     style: GoogleFonts.nunito(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
@@ -398,23 +557,22 @@ class RequestCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    subtitle,
+                    "${job['worker_name'] ?? '—'} • ${job['location'] ?? ''}",
                     style: GoogleFonts.nunito(
-                      color: Colors.grey,
-                      fontSize: 13,
-                    ),
+                        color: Colors.grey, fontSize: 13),
                   ),
                 ],
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                status,
+                statusLabels[status] ?? status,
                 style: GoogleFonts.nunito(
                   color: Colors.blue,
                   fontSize: 12,
@@ -425,6 +583,38 @@ class RequestCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  static Widget _drawerItem(IconData icon, String label,
+      {VoidCallback? onTap, bool badge = false}) {
+    return ListTile(
+      leading: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(icon, color: Colors.grey.shade700),
+          if (badge)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                    color: Colors.blue, shape: BoxShape.circle),
+              ),
+            ),
+        ],
+      ),
+      title: Text(
+        label,
+        style: GoogleFonts.nunito(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+      ),
+      onTap: onTap ?? () {},
     );
   }
 }
