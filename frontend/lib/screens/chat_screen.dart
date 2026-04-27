@@ -21,15 +21,13 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   List messages = [];
   final TextEditingController controller = TextEditingController();
-
+  final ScrollController _scrollController = ScrollController();
   Timer? timer;
 
   @override
   void initState() {
     super.initState();
     fetchMessages();
-
-    // 🔁 Poll every 2 seconds
     timer = Timer.periodic(const Duration(seconds: 2), (_) {
       fetchMessages();
     });
@@ -38,33 +36,41 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     timer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> fetchMessages() async {
-    try {
-      final res = await http.get(
-        Uri.parse("${ApiService.baseUrl}/api/chat/${widget.jobId}"),
-      );
-
-      if (res.statusCode == 200) {
-        setState(() {
-          messages = jsonDecode(res.body);
-        });
-      }
-    } catch (_) {
-      // Keep chat screen resilient during polling failures.
+Future<void> fetchMessages() async {
+  try {
+    final res = await http.get(
+      Uri.parse("${ApiService.apiBase}/chat/${widget.jobId}"),
+    );
+    if (res.statusCode == 200) {
+      final decoded = jsonDecode(res.body);
+      setState(() {
+        messages = decoded;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          );
+        }
+      });
     }
-  }
+  } catch (_) {}
+}
 
   Future<void> sendMessage() async {
-    if (controller.text.isEmpty) return;
-
     final content = controller.text.trim();
     if (content.isEmpty) return;
 
+    controller.clear();
+
     final response = await http.post(
-      Uri.parse("${ApiService.baseUrl}/api/chat/send"),
+      Uri.parse("${ApiService.apiBase}/chat/send"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "jobId": widget.jobId,
@@ -82,23 +88,9 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    controller.clear();
     fetchMessages();
   }
-
-  String _formatMessageTime(DateTime time) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final timeDate = DateTime(time.year, time.month, time.day);
-
-    if (timeDate == today) {
-      return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
-    } else if (timeDate == today.subtract(const Duration(days: 1))) {
-      return "Yesterday ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
-    } else {
-      return "${time.day}/${time.month}/${time.year}";
-    }
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -108,71 +100,112 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final msg = messages[index];
                 final isMe = msg['sender_id'] == widget.currentUserId;
-                final timestamp = msg['created_at'] != null
-                    ? DateTime.tryParse(msg['created_at'] as String)
+
+                // ✅ Safe toString() instead of "as String"
+                final rawTime = msg['sent_at'] ?? msg['created_at'];
+                final timestamp = rawTime != null
+                    ? DateTime.tryParse(rawTime.toString())
                     : null;
+
+                final timeStr = timestamp != null
+                    ? "${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}"
+                    : '';
 
                 return Align(
                   alignment:
                       isMe ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Column(
-                    crossAxisAlignment: isMe
-                        ? CrossAxisAlignment.end
-                        : CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.all(8),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: isMe ? Colors.blue : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          msg['content'],
-                          style: TextStyle(
-                            color: isMe ? Colors.white : Colors.black,
-                          ),
-                        ),
-                      ),
-                      if (timestamp != null)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isMe ? Colors.blue : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Flexible(
                           child: Text(
-                            _formatMessageTime(timestamp),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey,
+                            msg['content'],
+                            style: TextStyle(
+                              color: isMe ? Colors.white : Colors.black,
                             ),
                           ),
                         ),
-                    ],
+                        if (timeStr.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            timeStr,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isMe
+                                  ? Colors.white70
+                                  : Colors.black45,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 );
               },
             ),
           ),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  decoration:
-                      const InputDecoration(hintText: "Type message"),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 4,
+                  offset: Offset(0, -1),
+                )
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      hintText: "Type message",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                    ),
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.send),
-                onPressed: sendMessage,
-              )
-            ],
-          )
+                const SizedBox(width: 6),
+                CircleAvatar(
+                  backgroundColor: Colors.blue,
+                  child: IconButton(
+                    icon: const Icon(Icons.send,
+                        color: Colors.white, size: 18),
+                    onPressed: sendMessage,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
+
 }

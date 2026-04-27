@@ -1,6 +1,5 @@
 const { sql, poolPromise } = require("../config/db");
 
-// 🔹 Get messages for a job
 exports.getMessages = async (req, res) => {
   try {
     const { jobId } = req.params;
@@ -22,7 +21,6 @@ exports.getMessages = async (req, res) => {
   }
 };
 
-// 🔹 Send message
 exports.sendMessage = async (req, res) => {
   try {
     const { jobId, senderId, content } = req.body;
@@ -33,8 +31,8 @@ exports.sendMessage = async (req, res) => {
       .input("senderId", sql.Int, senderId)
       .input("content", sql.VarChar, content)
       .query(`
-        INSERT INTO message (job_id, sender_id, content)
-        VALUES (@jobId, @senderId, @content)
+        INSERT INTO message (job_id, sender_id, content, sent_at)
+        VALUES (@jobId, @senderId, @content, GETDATE())
       `);
 
     res.json({ success: true, message: "Message sent" });

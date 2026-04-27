@@ -8,7 +8,6 @@ exports.signup = async (req, res) => {
 
     const pool = await poolPromise;
 
-    // Check if user already exists
     const checkUser = await pool.request()
       .input('contact_number', contact_number)
       .query(`SELECT * FROM users WHERE contact_number = @contact_number`);
@@ -66,13 +65,29 @@ exports.login = async (req, res) => {
       });
     }
 
-    // const isMatch = await bcrypt.compare(password, user.password);
-    const isMatch = (password === user.password);
+    // ✅ Works with both hashed and plain text passwords
+    let isMatch = false;
+    if (user.password && user.password.startsWith("$2b$")) {
+      // Hashed password — use bcrypt
+      isMatch = await bcrypt.compare(password, user.password);
+    } else {
+      // Plain text password — direct compare
+      isMatch = (password === user.password);
+    }
 
     if (!isMatch) {
       return res.status(400).json({
         message: "Incorrect password"
       });
+    }
+
+    // ✅ If plain text, upgrade to hashed for next time
+    if (user.password && !user.password.startsWith("$2b$")) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await pool.request()
+        .input('hashedPassword', hashedPassword)
+        .input('contact_number', contact_number)
+        .query(`UPDATE users SET password = @hashedPassword WHERE contact_number = @contact_number`);
     }
 
     res.json({
