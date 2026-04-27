@@ -65,7 +65,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    // ✅ Works with both hashed and plain text passwords
+    // Works with both hashed and plain text passwords
     let isMatch = false;
     if (user.password && user.password.startsWith("$2b$")) {
       // Hashed password — use bcrypt

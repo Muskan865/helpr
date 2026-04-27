@@ -66,31 +66,33 @@ class _RequesterJobHistoryScreenState
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold),
                               ),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => PostRequestScreen(
-                                        requesterId: widget.requesterId,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.add, size: 16),
-                                label: const Text("Create Request"),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.black,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(20)),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 8),
-                                  textStyle:
-                                      const TextStyle(fontSize: 13),
-                                ),
-                              ),
+                              // Flexible(
+                              //   child: ElevatedButton.icon(
+                              //     onPressed: () {
+                              //       Navigator.push(
+                              //         context,
+                              //         MaterialPageRoute(
+                              //           builder: (_) => PostRequestScreen(
+                              //             requesterId: widget.requesterId,
+                              //           ),
+                              //         ),
+                              //       );
+                              //     },
+                              //     icon: const Icon(Icons.add, size: 16),
+                              //     label: const Text("Create Request"),
+                              //     style: ElevatedButton.styleFrom(
+                              //       backgroundColor: Colors.black,
+                              //       foregroundColor: Colors.white,
+                              //       shape: RoundedRectangleBorder(
+                              //           borderRadius:
+                              //               BorderRadius.circular(20)),
+                              //       padding: const EdgeInsets.symmetric(
+                              //           horizontal: 14, vertical: 8),
+                              //       textStyle:
+                              //           const TextStyle(fontSize: 13),
+                              //     ),
+                              //   ),
+                              // ),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -281,13 +283,16 @@ class _RequesterJobHistoryScreenState
                         Row(
                           children: List.generate(
                             5,
-                            (i) => Icon(
-                              i < (job['my_rating'] as num).toInt()
-                                  ? Icons.star
-                                  : Icons.star_border,
-                              size: 14,
-                              color: Colors.amber,
-                            ),
+                            (i) {
+                              final rating = job['my_rating'] is num ? (job['my_rating'] as num).toInt() : int.tryParse(job['my_rating'].toString()) ?? 0;
+                              return Icon(
+                                i < rating
+                                    ? Icons.star
+                                    : Icons.star_border,
+                                size: 14,
+                                color: Colors.amber,
+                              );
+                            },
                           ),
                         ),
                         if (job['my_comment'] != null &&
