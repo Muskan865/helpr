@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '/widgets/appbar.dart';
 import 'requester_job_tracking_screen.dart';
+import 'rating_review_screen.dart';
 
 class RequesterActiveJobsScreen extends StatefulWidget {
   final int requesterId;
@@ -33,12 +34,60 @@ class _RequesterActiveJobsScreenState
         activeJobs = result;
         isLoading = false;
       });
+      _checkForCompletedJobsNeedingRating(result);
     } catch (e) {
       setState(() {
         error = "Failed to load active jobs";
         isLoading = false;
       });
     }
+  }
+
+  void _checkForCompletedJobsNeedingRating(List<dynamic> jobs) {
+    final completedJobsNeedingRating = jobs
+        .where((job) => job['status'].toString().toLowerCase() == 'completed')
+        .toList();
+
+    if (completedJobsNeedingRating.isNotEmpty) {
+      _showRatingPrompt(completedJobsNeedingRating.first);
+    }
+  }
+
+  void _showRatingPrompt(Map job) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: const Text('Job Completed!'),
+        content: Text(
+          'Please rate and review ${job['worker_name'] ?? "the worker"} to help maintain service quality.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Later'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RatingReviewScreen(
+                    reviewerId: widget.requesterId,
+                    revieweeId: (job['worker_id'] as num).toInt(),
+                    workerName: job['worker_name'] ?? "Worker",
+                    jobId: (job['job_id'] as num).toInt(),
+                    profession: job['profession'] ?? "",
+                  ),
+                ),
+              ).then((_) => _loadJobs());
+            },
+            child: const Text('Rate Now', style: TextStyle(color: Colors.green)),
+          ),
+        ],
+      ),
+    );
   }
 
   String _statusLabel(String status) {
