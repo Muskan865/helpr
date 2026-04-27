@@ -18,6 +18,7 @@ const poolPromise = new sql.ConnectionPool(config)
   .then(pool => {
     console.log("Connected to DB ✅");
     return pool;
+    
   })
   .catch(err => {
     console.log("DB Connection Failed ❌", err);

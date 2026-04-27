@@ -120,7 +120,11 @@ class _RequesterJobHistoryScreenState
     final date = job['date'] != null
         ? DateTime.tryParse(job['date']?.toString() ?? '')
         : null;
-    final workerId = job['worker_id'];
+
+    final workerIdValue = job['worker_id'];
+    final workerId = workerIdValue != null
+        ? (workerIdValue is int ? workerIdValue : int.tryParse(workerIdValue.toString()))
+        : null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -136,10 +140,12 @@ class _RequesterJobHistoryScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                job['service_type']?.toString() ?? "",
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold),
+              Expanded(
+                child: Text(
+                  job['service_type']?.toString() ?? "",
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
               Container(
                 padding:
@@ -162,9 +168,11 @@ class _RequesterJobHistoryScreenState
             children: [
               const Icon(Icons.location_on, size: 14, color: Colors.grey),
               const SizedBox(width: 4),
-              Text(job['location']?.toString() ?? "—",
-                  style: const TextStyle(
-                      color: Colors.grey, fontSize: 13)),
+              Expanded(
+                child: Text(job['location']?.toString() ?? "—",
+                    style: const TextStyle(
+                        color: Colors.grey, fontSize: 13)),
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -173,12 +181,14 @@ class _RequesterJobHistoryScreenState
               const Icon(Icons.calendar_today,
                   size: 14, color: Colors.grey),
               const SizedBox(width: 4),
-              Text(
-                date != null
-                    ? "${date.day}/${date.month}/${date.year} • ${job['time']?.toString() ?? ''}"
-                    : "—",
-                style:
-                    const TextStyle(color: Colors.grey, fontSize: 13),
+              Expanded(
+                child: Text(
+                  date != null
+                      ? "${date.day}/${date.month}/${date.year} • ${job['time']?.toString() ?? ''}"
+                      : "—",
+                  style:
+                      const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
               ),
             ],
           ),
@@ -193,7 +203,7 @@ class _RequesterJobHistoryScreenState
                   context,
                   MaterialPageRoute(
                     builder: (_) => WorkerPublicProfileScreen(
-                      workerId: workerId as int,
+                      workerId: workerId,
                     ),
                   ),
                 );
@@ -204,7 +214,9 @@ class _RequesterJobHistoryScreenState
                     radius: 16,
                     backgroundColor: Colors.blue.shade100,
                     child: Text(
-                      (job['worker_name']?.toString() ?? "?")[0].toUpperCase(),
+                      (job['worker_name']?.toString() ?? "?").isNotEmpty
+                          ? job['worker_name'].toString()[0].toUpperCase()
+                          : "?",
                       style: const TextStyle(
                           color: Colors.blue,
                           fontWeight: FontWeight.bold,

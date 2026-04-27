@@ -1,1 +1,23 @@
+# Backend
+backend/node_modules/
+backend/.env
+backend/*.log
+
+# Flutter frontend
+frontend/build/
+frontend/.dart_tool/
+frontend/.packages
+frontend/pubspec.lock
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/ios/Pods/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# General
 .env
+*.log
