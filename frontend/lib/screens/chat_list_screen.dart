@@ -32,7 +32,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
       if (widget.isRequester) {
         jobs = await ApiService.getRequesterJobs(widget.userId);
       } else {
-        // Reuse worker jobs endpoint, keep all active jobs (not completed)
         final all = await ApiService.getWorkerJobs(widget.userId);
         jobs = all
             .where((j) => (j['status'] ?? '').toString().toLowerCase() != 'completed')
@@ -78,6 +77,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     final int? jobId = jobIdRaw is int
                         ? jobIdRaw
                         : int.tryParse(jobIdRaw?.toString() ?? '');
+
+                    final String title = widget.isRequester
+                        ? "${job['worker_name'] ?? 'Worker'} (${job['service_type'] ?? 'Job'})"
+                        : "${job['client_name'] ?? 'Client'} (${job['service_type'] ?? 'Job'})";
+
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Colors.blue.shade100,
@@ -87,7 +91,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         ),
                       ),
                       title: Text(
-                        job['service_type'] ?? "Job #${job['job_id']}",
+                        title,
                         style: GoogleFonts.nunito(
                           fontWeight: FontWeight.w700,
                         ),
@@ -106,7 +110,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           );
                           return;
                         }
-
                         Navigator.push(
                           context,
                           MaterialPageRoute(

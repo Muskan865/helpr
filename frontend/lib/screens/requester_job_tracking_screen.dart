@@ -175,7 +175,7 @@ class RequesterJobTrackingScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => WorkerPublicProfileScreen(
-                            workerId: job['worker_id'],
+                            workerId: (job['worker_id'] as num).toInt(),
                           ),
                         ),
                       );
@@ -240,9 +240,9 @@ class RequesterJobTrackingScreen extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (_) => RatingReviewScreen(
                           reviewerId: requesterId,
-                          revieweeId: job['worker_id'],
+                          revieweeId: (job['worker_id'] as num).toInt(),
                           workerName: job['worker_name'] ?? "Worker",
-                          jobId: job['job_id'],
+                          jobId: (job['job_id'] as num).toInt(),
                           profession: job['profession'] ?? "",
                         ),
                       ),
