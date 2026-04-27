@@ -210,7 +210,7 @@ exports.getRequesterActiveJobs = async (req, res) => {
         JOIN users u ON w.user_id = u.id
         LEFT JOIN bid b ON b.request_id = sr.id AND (b.worker_id = w.user_id OR b.worker_id = w.id) AND b.status = 'accepted'
         WHERE sr.requester_id = @requesterId 
-          AND( LOWER(j.status) != 'completed' 
+          AND LOWER(j.status) != 'completed' 
           // OR  ( LOWER(j.status) == 'completed' 
           //   AND NOT EXISTS (
           //       SELECT 1 FROM rating_review rr
