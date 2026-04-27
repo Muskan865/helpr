@@ -20,7 +20,7 @@ class ApiService {
     if (kIsWeb) return "http://localhost:3000";
     if (defaultTargetPlatform == TargetPlatform.android) {
       // Android emulator -> host machine localhost
-      return "http://10.0.2.2:3000";
+      return "http://10.20.4.122:3000";
     }
     return "http://localhost:3000";
   }
